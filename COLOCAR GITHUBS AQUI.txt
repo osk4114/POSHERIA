@@ -1,0 +1,19 @@
+1348877@senati.pe
+Comandos para Alexander:
+git clone https://github.com/osk4114/POSHERIA.git
+cd POSHERIA
+git checkout alexander
+
+1542725@senati.pe
+Comandos para Lucero:
+git clone https://github.com/osk4114/POSHERIA.git
+cd POSHERIA
+git checkout lucero
+
+1545218@senati.pe
+Comandos para Luis Fernando:
+git clone https://github.com/osk4114/POSHERIA.git
+cd POSHERIA
+git checkout luisfernando
+
+
