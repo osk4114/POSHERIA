@@ -5,10 +5,12 @@ const config = require('./config/config');
 const logger = require('./middlewares/logger');
 
 
+
 const homeRoutes = require('./routes/homeRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const cajaRoutes = require('./routes/cajaRoutes');
+const kitchenRoutes = require('./routes/kitchenRoutes');
 
 
 const { connectDB } = require('./config/mongo');
@@ -22,10 +24,15 @@ app.use(express.static(path.join(__dirname, 'views')));
 // Rutas backend (API)
 
 
+
+
+const tableRoutes = require('./routes/tableRoutes');
 app.use('/api', homeRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/caja', cajaRoutes);
+app.use('/api/kitchen', kitchenRoutes);
+app.use('/api/tables', tableRoutes);
 
 // Para cualquier otra ruta, servir index.html de React
 app.get('*', (req, res) => {

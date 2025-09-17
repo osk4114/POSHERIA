@@ -12,6 +12,8 @@ class Caja {
     finalAmount = 0,
     movements = [], // [{ type: 'ingreso'|'egreso', amount, description, orderId, createdAt }]
     status = 'open', // open | closed
+    confirmed = false,
+    confirmedAt = null,
     createdAt = new Date(),
     closedAt = null
   }) {
@@ -22,6 +24,8 @@ class Caja {
     this.finalAmount = finalAmount;
     this.movements = movements;
     this.status = status;
+    this.confirmed = confirmed;
+    this.confirmedAt = confirmedAt;
     this.createdAt = createdAt;
     this.closedAt = closedAt;
   }

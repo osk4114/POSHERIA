@@ -1,12 +1,12 @@
 // controllers/tableController.js
 const { ObjectId } = require('mongodb');
 const Table = require('../models/tableModel');
-const getDb = require('../config/mongo');
+const { getDB } = require('../config/mongo');
 
 // Crear mesa
 async function crearMesa(req, res) {
   try {
-    const db = await getDb();
+  const db = getDB();
     const { number, status } = req.body;
     const mesa = new Table({ number, status });
     const result = await db.collection('tables').insertOne(mesa);
@@ -19,7 +19,7 @@ async function crearMesa(req, res) {
 // Listar mesas
 async function listarMesas(req, res) {
   try {
-    const db = await getDb();
+  const db = getDB();
     const mesas = await db.collection('tables').find().toArray();
     res.json(mesas);
   } catch (err) {
@@ -30,7 +30,7 @@ async function listarMesas(req, res) {
 // Actualizar mesa
 async function actualizarMesa(req, res) {
   try {
-    const db = await getDb();
+  const db = getDB();
     const { id } = req.params;
     const update = req.body;
     const result = await db.collection('tables').findOneAndUpdate(
@@ -48,7 +48,7 @@ async function actualizarMesa(req, res) {
 // Eliminar mesa
 async function eliminarMesa(req, res) {
   try {
-    const db = await getDb();
+  const db = getDB();
     const { id } = req.params;
     const result = await db.collection('tables').deleteOne({ _id: new ObjectId(id) });
     if (result.deletedCount === 0) return res.status(404).json({ message: 'Mesa no encontrada' });

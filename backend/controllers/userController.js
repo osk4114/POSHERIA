@@ -7,12 +7,12 @@ const { getDB } = require('../config/mongo');
 // Crear usuario
 async function crearUsuario(req, res) {
   try {
-  const db = getDB();
-    const { name, email, password, role } = req.body;
-    const existe = await db.collection('users').findOne({ email });
-    if (existe) return res.status(400).json({ message: 'El email ya está registrado' });
+    const db = getDB();
+    const { name, username, password, role } = req.body;
+    const existe = await db.collection('users').findOne({ username });
+    if (existe) return res.status(400).json({ message: 'El username ya está registrado' });
     const hash = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hash, role });
+    const user = new User({ name, username, password: hash, role });
     const result = await db.collection('users').insertOne(user);
     res.json({ message: 'Usuario creado', userId: result.insertedId });
   } catch (err) {

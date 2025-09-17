@@ -11,14 +11,39 @@ const { ObjectId } = require('mongodb');
 // Create a new order
 async function createOrder(req, res) {
   try {
-  const db = getDB();
+    const db = getDB();
     const orders = db.collection('orders');
+    const cajas = db.collection('cajas');
     const {
       products, // [{ productId, name, quantity, price }]
       table, // tableId or null
       type, // 'dine-in' or 'take-away'
     } = req.body;
     const userId = req.user._id; // From auth middleware
+
+    // Validar que el cajero tenga una caja abierta y confirmada
+    const caja = await cajas.findOne({ assignedTo: new ObjectId(userId), status: 'open', confirmed: true });
+    if (!caja) {
+      return res.status(400).json({ message: 'No se puede crear pedido: la caja no está confirmada o no existe una caja abierta.' });
+    }
+
+    // Validar mesa si es dine-in
+    if (type === 'dine-in') {
+      if (!table) {
+        return res.status(400).json({ message: 'Debe asignar una mesa para consumo en salón.' });
+      }
+      const mesas = db.collection('tables');
+      const mesaObjId = new ObjectId(table);
+      const mesa = await mesas.findOne({ _id: mesaObjId });
+      if (!mesa) {
+        return res.status(400).json({ message: 'Mesa no encontrada.' });
+      }
+      if (mesa.status !== 'free') {
+        return res.status(400).json({ message: 'La mesa no está disponible.' });
+      }
+      // Marcar mesa como ocupada
+      await mesas.updateOne({ _id: mesaObjId }, { $set: { status: 'occupied', updatedAt: new Date() } });
+    }
     const order = {
       products,
       table: table ? new ObjectId(table) : null,

@@ -1,30 +1,59 @@
+// Eliminar todas las cajas abiertas o pendientes de confirmación de un usuario (solo para pruebas)
+async function limpiarCajasUsuario(req, res) {
+  try {
+    const db = getDB();
+    const { assignedTo } = req.query;
+    if (!assignedTo) return res.status(400).json({ message: 'Falta el parámetro assignedTo' });
+    const result = await db.collection('cajas').deleteMany({ assignedTo: new ObjectId(assignedTo), status: 'open' });
+    res.json({ message: 'Cajas abiertas/pendientes eliminadas', deletedCount: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ message: 'Error al limpiar cajas', error: err.message });
+  }
+}
 // controllers/cajaController.js
 const { ObjectId } = require('mongodb');
 const Caja = require('../models/cajaModel');
 const { getDB } = require('../config/mongo');
 
-// Abrir caja
+// Abrir caja (admin asigna, pendiente de confirmación)
 async function abrirCaja(req, res) {
   try {
-  const db = getDB();
+    const db = getDB();
     const { assignedTo, initialAmount } = req.body;
     // Verificar si ya hay una caja abierta para el usuario
-    const cajaAbierta = await db.collection('cajas').findOne({ assignedTo: new ObjectId(assignedTo), status: 'open' });
+    const cajaAbierta = await db.collection('cajas').findOne({ assignedTo: new ObjectId(assignedTo), status: 'open', confirmed: false });
     if (cajaAbierta) {
-      return res.status(400).json({ message: 'Ya existe una caja abierta para este usuario.' });
+      return res.status(400).json({ message: 'Ya existe una caja pendiente de confirmación para este usuario.' });
     }
-    const caja = new Caja({ assignedTo, initialAmount, status: 'open', createdAt: new Date() });
+    const caja = new Caja({ assignedTo, initialAmount, status: 'open', confirmed: false, createdAt: new Date() });
     const result = await db.collection('cajas').insertOne(caja);
-    res.json({ message: 'Caja abierta', cajaId: result.insertedId });
+    res.json({ message: 'Caja abierta (pendiente de confirmación)', cajaId: result.insertedId });
   } catch (err) {
     res.status(500).json({ message: 'Error al abrir caja', error: err.message });
   }
 }
 
-// Registrar movimiento (ingreso/egreso)
+// Confirmar monto inicial de caja (cajero)
+async function confirmarCaja(req, res) {
+  try {
+    const db = getDB();
+    const { cajaId } = req.body;
+    const caja = await db.collection('cajas').findOneAndUpdate(
+      { _id: new ObjectId(cajaId), status: 'open', confirmed: false },
+      { $set: { confirmed: true, confirmedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!caja.value) return res.status(404).json({ message: 'Caja no encontrada o ya confirmada' });
+    res.json({ message: 'Caja confirmada', caja: caja.value });
+  } catch (err) {
+    res.status(500).json({ message: 'Error al confirmar caja', error: err.message });
+  }
+}
+
+// Registrar movimiento (ingreso/egreso) solo si caja confirmada
 async function registrarMovimiento(req, res) {
   try {
-  const db = getDB();
+    const db = getDB();
     const { cajaId, type, amount, description, orderId } = req.body;
     const movimiento = {
       type,
@@ -34,11 +63,11 @@ async function registrarMovimiento(req, res) {
       createdAt: new Date()
     };
     const caja = await db.collection('cajas').findOneAndUpdate(
-      { _id: new ObjectId(cajaId), status: 'open' },
+      { _id: new ObjectId(cajaId), status: 'open', confirmed: true },
       { $push: { movements: movimiento } },
       { returnDocument: 'after' }
     );
-    if (!caja.value) return res.status(404).json({ message: 'Caja no encontrada o cerrada' });
+    if (!caja.value) return res.status(404).json({ message: 'Caja no encontrada, cerrada o no confirmada' });
     res.json({ message: 'Movimiento registrado', caja: caja.value });
   } catch (err) {
     res.status(500).json({ message: 'Error al registrar movimiento', error: err.message });
@@ -93,5 +122,7 @@ module.exports = {
   registrarMovimiento,
   cerrarCaja,
   estadoCaja,
-  historialCajas
+  historialCajas,
+  confirmarCaja
+  ,limpiarCajasUsuario
 };

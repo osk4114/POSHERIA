@@ -7,7 +7,7 @@ class Table {
   constructor({
     _id,
     number,
-    status = 'free', // free | occupied | reserved
+    status = 'free', // free | occupied
     orders = [], // Array of order ObjectIds
     createdAt = new Date(),
     updatedAt = new Date()
