@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Pantalla de Caja</title>
+	<link rel="stylesheet" href="CajaPage.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+	<!-- Cambia el atributo 'src' para probar con otro video: ensalda.mp4, papas.mp4, pollo.mp4 -->
+			<video class="background-video" src="videos/ensalda.mp4" autoplay muted playsinline id="bgVideo"></video>
+	
+	<div class="caja-header">
+		<div class="header-left">
+			<img class="logo" src="" alt="Logo" />
+		</div>
+		<div class="header-center">
+			<span class="header-title">POSHERIA</span>
+		</div>
+		<div class="header-right">
+			   <img class="user-icon" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Usuario" />
+			   <img class="menu-icon" src="https://cdn-icons-png.flaticon.com/512/1828/1828859.png" alt="Menú" id="menuBtn" />
+			   <div id="menuPopup" class="menu-popup" style="display:none;">
+				   <ul>
+					   <li>Nuevo pedido</li>
+					   <li>Ver pedidos</li>
+					   <li>Cerrar sesión</li>
+				   </ul>
+			   </div>
+		</div>
+	</div>
+	<div class="caja-container">
+		<div class="menu-productos">
+			<div class="menu-section">
+				<div class="menu-title">MENÚ DE PRODUCTOS</div>
+				<div class="productos-grid">
+					<div class="producto-card">
+						<img src="" alt="Pollo a la brasa">
+						<div class="producto-info">
+							<span class="producto-nombre">1/4 Pollo</span>
+							<span class="producto-precio">S/ 24.00</span>
+						</div>
+					</div>
+					<div class="producto-card">
+						<img src="" alt="1/2 Pollo">
+						<div class="producto-info">
+							<span class="producto-nombre">1/2 Pollo</span>
+							<span class="producto-precio">S/ 36.00</span>
+						</div>
+					</div>
+					<div class="producto-card">
+						<img src="" alt="Pollo Entero">
+						<div class="producto-info">
+							<span class="producto-nombre">Pollo Entero</span>
+							<span class="producto-precio">S/ 60.00</span>
+						</div>
+					</div>
+					<!-- Más productos -->
+				</div>
+			</div>
+			<div class="menu-section">
+				<div class="menu-title">COMBOS Y BEBIDAS</div>
+				<div class="combos-grid">
+					<div class="combo-card">
+						<img src="" alt="Combo Familiar">
+						<div class="combo-info">
+							<span class="combo-nombre">Combo Familiar</span>
+							<span class="combo-precio">S/ 84.96</span>
+						</div>
+					</div>
+					<div class="combo-card">
+						<img src="" alt="Combo Personal">
+						<div class="combo-info">
+							<span class="combo-nombre">Combo Personal</span>
+							<span class="combo-precio">S/ 24.00</span>
+						</div>
+					</div>
+					<div class="combo-card">
+						<img src="" alt="Bebida">
+						<div class="combo-info">
+							<span class="combo-nombre">Bebida</span>
+							<span class="combo-precio">S/ 6.00</span>
+						</div>
+					</div>
+					<!-- Más combos y bebidas -->
+				</div>
+			</div>
+		</div>
+		<div class="detalle-pedido">
+			<div class="detalle-header detalle-header-v3">
+				<span class="detalle-title-v3">DETALLE DEL PEDIDO</span>
+			</div>
+			<ul class="pedido-lista-v3">
+				<li>
+					<span class="pedido-cantidad-v3">
+						<button class="pedido-btn-v3 menos">-</button>
+						<span class="pedido-num-v3">2</span>
+						<button class="pedido-btn-v3 mas">+</button>
+					</span>
+					<span class="pedido-nombre-v3">1/4 Pollo</span>
+					<span class="pedido-precio-v3">S/ 48.00</span>
+					<button class="pedido-btn-v3 eliminar" title="Eliminar"><img src="https://cdn-icons-png.flaticon.com/512/484/484662.png" alt="Eliminar"/></button>
+				</li>
+				<li>
+					<span class="pedido-cantidad-v3">
+						<button class="pedido-btn-v3 menos">-</button>
+						<span class="pedido-num-v3">1</span>
+						<button class="pedido-btn-v3 mas">+</button>
+					</span>
+					<span class="pedido-nombre-v3">Combo Personal</span>
+					<span class="pedido-precio-v3">S/ 24.00</span>
+					<button class="pedido-btn-v3 eliminar" title="Eliminar"><img src="https://cdn-icons-png.flaticon.com/512/484/484662.png" alt="Eliminar"/></button>
+				</li>
+			</ul>
+			<div class="pedido-totales-v3">
+				<div class="pedido-totales-row"><span>SUBTOTAL:</span><span>S/ 72.00</span></div>
+				<div class="pedido-totales-row"><span>IGV (18%):</span><span>S/ 12.96</span></div>
+				<div class="total-destacado-v3"><span>TOTAL:</span> <span>S/ 84.96</span></div>
+			</div>
+			<div class="pedido-acciones">
+				<button class="btn-pagar"><alt="Pagar"/> APROBAR PEDIDO</button>
+				<button class="btn-cancelar"><alt="Cancelar"/> CANCELAR PEDIDO</button>
+				<button class="btn-guardar"><alt="Guardar"/> GUARDAR PEDIDO</button>
+				<button class="btn-nuevo"><alt="Nuevo"/> NUEVO PEDIDO</button>
+			</div>
+		</div>
+	</div>
+	<script>
+		// Lista de videos locales
+		const videos = [
+			'videos/ensalda.mp4',
+			'videos/papas.mp4',
+			'videos/pollo.mp4'
+		];
+		let current = 0;
+		const videoEl = document.getElementById('bgVideo');
+		videoEl.addEventListener('ended', () => {
+			current = (current + 1) % videos.length;
+			videoEl.src = videos[current];
+			videoEl.play();
+		});
+	</script>
+<script>
+// Menú hamburguesa flotante
+const menuBtn = document.getElementById('menuBtn');
+const menuPopup = document.getElementById('menuPopup');
+menuBtn.addEventListener('click', function(e) {
+	e.stopPropagation();
+	menuPopup.style.display = menuPopup.style.display === 'block' ? 'none' : 'block';
+});
+document.addEventListener('click', function(e) {
+	if (menuPopup.style.display === 'block') menuPopup.style.display = 'none';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú - Pollería Luján Carrión</title>
+    <link rel="stylesheet" href="MenuPage.css">
+</head>
+<body>
+    <div class="menu-container">
+        <header class="menu-header">
+            <h1>Nuestro Menú</h1>
+            <nav class="menu-tabs">
+                <button class="tab-button active" data-tab="combos">Nuestros Combos</button>
+                <button class="tab-button" data-tab="clasico">Pollo a la Brasa</button>
+                <button class="tab-button" data-tab="bebidas">Para Refrescar</button>
+            </nav>
+        </header>
+
+        <main class="menu-content">
+            <!-- Sección de Combos -->
+            <section id="combos" class="tab-content active">
+                <h2>Nuestros Combos</h2>
+                <div class="productos-grid">
+                    <div class="producto-card">
+                        <div class="producto-icon">👨‍👩‍👧‍👦</div>
+                        <h3>COMBO FAMILIAR</h3>
+                        <div class="precio">S/ 89.00</div>
+                        <div class="descripcion">
+                            <p>1 Pollo a la Brasa</p>
+                            <p>Papas Familiares</p>
+                            <p>Ensalada Grande</p>
+                            <p>Gaseosa 1.5Lt</p>
+                        </div>
+                    </div>
+                    <div class="producto-card">
+                        <div class="producto-icon">👤</div>
+                        <h3>COMBO PERSONAL</h3>
+                        <div class="precio">S/ 24.00</div>
+                        <div class="descripcion">
+                            <p>1/4 Pollo</p>
+                            <p>Papas Personales</p>
+                            <p>Ensalada Pequeña</p>
+                            <p>Chicha Morada</p>
+                        </div>
+                    </div>
+                    <div class="producto-card">
+                        <div class="producto-icon">👥</div>
+                        <h3>COMBO PAREJA</h3>
+                        <div class="precio">S/ 48.00</div>
+                        <div class="descripcion">
+                            <p>1/2 Pollo</p>
+                            <p>Papas Medians</p>
+                            <p>Ensalada Mediana</p>
+                            <p>2 Gaseosa Personales</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Pollo a la Brasa -->
+            <section id="clasico" class="tab-content">
+                <h2>El Clásico Pollo a la Brasa</h2>
+                <div class="productos-grid">
+                    <div class="producto-card">
+                        <img src="images/octavopollo.webp" alt="1/8 Pollo" class="producto-imagen">
+                        <h3>1/8 POLLO</h3>
+                        <div class="precio">S/ 12.00</div>
+                        <div class="descripcion">
+                            <p>Papas Personales</p>
+                            <p>Ensalada Clásica</p>
+                            <p>Cremas</p>
+                        </div>
+                    </div>
+                    <div class="producto-card">
+                        <img src="images/cuartopollo.webp" alt="1/4 Pollo" class="producto-imagen">
+                        <h3>1/4 POLLO</h3>
+                        <div class="precio">S/ 18.00</div>
+                        <div class="descripcion">
+                            <p>Papas Personales</p>
+                            <p>Ensalada Clásica</p>
+                            <p>Cremas</p>
+                        </div>
+                    </div>
+                    <div class="producto-card">
+                        <img src="images/mediopollo.webp" alt="1/2 Pollo" class="producto-imagen">
+                        <h3>1/2 POLLO</h3>
+                        <div class="precio">S/ 34.00</div>
+                        <div class="descripcion">
+                            <p>Papas Medianas</p>
+                            <p>Ensalada Mediana</p>
+                            <p>Cremas</p>
+                        </div>
+                    </div>
+                    <div class="producto-card">
+                        <img src="images/1pollo.webp" alt="Pollo Entero" class="producto-imagen">
+                        <h3>POLLO ENTERO</h3>
+                        <div class="precio">S/ 62.00</div>
+                        <div class="descripcion">
+                            <p>Papas Familiares</p>
+                            <p>Ensalada Grande</p>
+                            <p>Cremas</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Bebidas -->
+            <section id="bebidas" class="tab-content">
+                <h2>Bebidas</h2>
+                <div class="productos-grid">
+                    <div class="producto-card">
+                        <img src="images/gaseosa (1).webp" alt="Inca Kola" class="producto-imagen">
+                        <h3>GASEOSAS DE LITRO</h3>
+                        <div class="precio">S/ 9.00</div>
+                        <div class="descripcion">
+                            <p>Enteras</p>
+                            <p>Coca Cola, Fanta, Sprite</p>
+                      </div>
+                    </div>
+                    <div class="producto-card">
+                        <img src="images/gaseosas-personales (1).webp" alt="Gaseosas" class="producto-imagen">
+                        <h3>GASEOSAS PERSONALES</h3>
+                        <div class="precio">S/ 5.00</div>
+                        <div class="descripcion">
+                            <p>Personales</p>
+                            <p>Coca Cola, Fanta, Sprite</p>
+                        </div>
+                    </div>
+                    <div class="producto-card">
+                        <img src="images/chicha (1).webp" alt="Chicha Morada" class="producto-imagen">
+                        <h3>JARRA</h3>
+                        <div class="precio">S/ 12.00</div>
+                        <div class="descripcion">
+                            <p>Jarra</p>
+                            <p>chicha morada</p>
+                            <p>Vaso S/ 4.00</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="MenuPage.js"></script>
+</body>
+</html>

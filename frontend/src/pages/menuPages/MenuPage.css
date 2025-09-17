@@ -1,0 +1,300 @@
+:root {
+    --color-primary: #4a1c1c;
+    --color-secondary: #f3a738;
+    --color-background: #f5f5f5;
+    --color-text: #333;
+    --color-card: #fff;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+.menu-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.menu-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.menu-header h1 {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin-bottom: 1.5rem;
+}
+
+.menu-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.tab-button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 25px;
+    background-color: var(--color-card);
+    color: var(--color-text);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+}
+
+.tab-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tab-button.active {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.tab-content {
+    display: none;
+    padding: 1rem;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content h2 {
+    color: var(--color-primary);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.productos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    padding: 1rem;
+}
+
+#clasico .productos-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.producto-card {
+    background-color: var(--color-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+    text-align: center;
+}
+
+.producto-card:hover {
+    transform: translateY(-5px);
+}
+
+.producto-imagen {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.producto-card h3 {
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+}
+
+.precio {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--color-secondary);
+    margin: 0.5rem 0;
+}
+
+.descripcion {
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+
+@media (max-width: 1200px) {
+    #clasico .productos-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    #clasico .productos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .menu-container {
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 600px) {
+    #clasico .productos-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-header h1 {
+        font-size: 2rem;
+    }
+
+    .tab-button {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+    box-shadow: var(--shadow);
+    z-index: 10;
+    transition: background-color 0.3s ease;
+} 
+
+.carrusel-btn:hover {
+    background-color: var(--color-secondary);
+}
+
+.carrusel-btn.prev {
+    left: 5px;
+}
+
+.carrusel-btn.next {
+    right: 5px;
+}
+
+.producto-card {
+    flex: 0 0 300px;
+}
+
+/* Estilo específico para la sección de pollo a la brasa */
+#clasico .productos-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* Ajuste responsivo para la sección de pollo a la brasa */
+@media (max-width: 1200px) {
+    #clasico .productos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    #clasico .productos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.producto-card {
+    background-color: var(--color-card);
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+}
+
+/* Ajustes específicos para las tarjetas de pollo a la brasa */
+#clasico .producto-card {
+    padding: 1rem;
+}
+
+#clasico .producto-imagen {
+    height: 150px;
+}
+
+#clasico .producto-card h3 {
+    font-size: 1.2rem;
+    margin: 0.5rem 0;
+}
+
+#clasico .producto-card .precio {
+    font-size: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+#clasico .producto-card .descripcion p {
+    font-size: 0.9rem;
+    margin: 0.3rem 0;
+}
+
+.producto-imagen {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.producto-card:hover {
+    transform: translateY(-5px);
+}
+
+.producto-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.producto-card h3 {
+    color: var(--color-primary);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.precio {
+    font-size: 2rem;
+    color: var(--color-secondary);
+    font-weight: bold;
+    margin: 1rem 0;
+}
+
+.descripcion {
+    color: var(--color-text);
+}
+
+.descripcion p {
+    margin: 0.5rem 0;
+}
+
+h2 {
+    color: var(--color-primary);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .menu-container {
+        padding: 1rem;
+    }
+
+    .menu-tabs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tab-button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .productos-grid {
+        grid-template-columns: 1fr;
+    }
+}
