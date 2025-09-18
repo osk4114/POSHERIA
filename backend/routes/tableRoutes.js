@@ -23,4 +23,7 @@ router.post('/:id/asignar', authMiddleware, tableController.asignarMesa);
 router.put('/:id', authMiddleware, tableController.actualizarMesa);
 router.post('/:id/liberar', authMiddleware, tableController.liberarMesa);
 
+// Obtener estadísticas de mesas ocupadas
+router.get('/ocupadas', authMiddleware, tableController.getMesasOcupadas);
+
 module.exports = router;

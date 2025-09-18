@@ -8,11 +8,13 @@ const TableManagement = () => {
   const [statusMsg, setStatusMsg] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
+  const [editingCapacity, setEditingCapacity] = useState(null);
   const [newTable, setNewTable] = useState({
     number: '',
     capacity: 4,
     status: 'free'
   });
+  const [tempCapacity, setTempCapacity] = useState(4);
 
   useEffect(() => {
     fetchMesas();
@@ -63,6 +65,14 @@ const TableManagement = () => {
   };
 
   const deleteTable = async (tableId) => {
+    const mesa = mesas.find(m => m._id === tableId);
+    
+    if (mesa && mesa.status === 'occupied') {
+      setError('No se puede eliminar una mesa que está ocupada');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    
     if (!window.confirm('¿Estás seguro de que quieres eliminar esta mesa?')) {
       return;
     }
@@ -102,12 +112,26 @@ const TableManagement = () => {
   return (
     <div className="table-management">
       <div className="table-management-header">
-        <h2>Gestión de Mesas</h2>
+        <div className="table-header-info">
+          <h2>Gestión de Mesas</h2>
+          <div className="table-stats">
+            <span className="stat">📊 Total: {mesas.length}</span>
+            <span className="stat stat-free">
+              🟢 Libres: {mesas.filter(m => m.status === 'free').length}
+            </span>
+            <span className="stat stat-occupied">
+              🟡 Ocupadas: {mesas.filter(m => m.status === 'occupied').length}
+            </span>
+            <span className="stat stat-reserved">
+              🔵 Reservadas: {mesas.filter(m => m.status === 'reserved').length}
+            </span>
+          </div>
+        </div>
         <button 
           className="admin-btn admin-btn-primary"
           onClick={() => setShowCreateForm(!showCreateForm)}
         >
-          {showCreateForm ? 'Cancelar' : '+ Nueva Mesa'}
+          {showCreateForm ? '❌ Cancelar' : '➕ Nueva Mesa'}
         </button>
       </div>
 
@@ -167,11 +191,13 @@ const TableManagement = () => {
 
       {/* Grid de mesas */}
       {loading ? (
-        <div className="tables-loading">Cargando mesas...</div>
+        <div className="tables-loading">
+          <div>🔄 Cargando mesas...</div>
+        </div>
       ) : (
         <div className="tables-grid">
           {mesas.map((mesa) => (
-            <div key={mesa._id} className="table-card">
+            <div key={mesa._id} className="table-card" data-status={mesa.status}>
               <div className="table-card-header">
                 <h3 className="table-number">Mesa {mesa.number}</h3>
                 <div 
@@ -186,6 +212,47 @@ const TableManagement = () => {
                 <div className="table-info">
                   <div className="table-capacity">
                     👥 Capacidad: {mesa.capacity || 4} personas
+                    {editingCapacity === mesa._id ? (
+                      <div className="capacity-edit">
+                        <input
+                          type="number"
+                          value={tempCapacity}
+                          onChange={(e) => setTempCapacity(parseInt(e.target.value))}
+                          min="1"
+                          max="12"
+                          className="admin-input-small"
+                          style={{ width: '60px', marginLeft: '10px' }}
+                        />
+                        <button 
+                          onClick={() => {
+                            updateTable(mesa._id, { capacity: tempCapacity });
+                            setEditingCapacity(null);
+                          }}
+                          className="admin-btn admin-btn-sm admin-btn-success"
+                          style={{ marginLeft: '5px' }}
+                        >
+                          ✓
+                        </button>
+                        <button 
+                          onClick={() => setEditingCapacity(null)}
+                          className="admin-btn admin-btn-sm admin-btn-secondary"
+                          style={{ marginLeft: '5px' }}
+                        >
+                          ✗
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setEditingCapacity(mesa._id);
+                          setTempCapacity(mesa.capacity || 4);
+                        }}
+                        className="edit-capacity-btn"
+                        title="Editar capacidad"
+                      >
+                        ✏️
+                      </button>
+                    )}
                   </div>
                   {mesa.waiterId && (
                     <div className="table-waiter">
@@ -197,6 +264,9 @@ const TableManagement = () => {
                       Estado: {mesa.waiterStatus}
                     </div>
                   )}
+                  <div className="table-created">
+                    📅 Creada: {new Date(mesa.createdAt || Date.now()).toLocaleDateString('es-AR')}
+                  </div>
                 </div>
                 
                 <div className="table-actions">
@@ -224,14 +294,17 @@ const TableManagement = () => {
                       <button 
                         onClick={() => setEditingTable(mesa._id)}
                         className="admin-btn admin-btn-sm admin-btn-warning"
+                        title="Cambiar estado de la mesa"
                       >
-                        Editar
+                        ✏️ Editar
                       </button>
                       <button 
                         onClick={() => deleteTable(mesa._id)}
                         className="admin-btn admin-btn-sm admin-btn-danger"
+                        title="Eliminar mesa permanentemente"
+                        disabled={mesa.status === 'occupied'}
                       >
-                        Eliminar
+                        🗑️ Eliminar
                       </button>
                     </>
                   )}

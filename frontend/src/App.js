@@ -5,6 +5,9 @@ import CajaPage from './pages/cajaPages/CajaPage';
 import MozoPage from './pages/mozoPages/MozoPage';
 import KitchenPage from './pages/kitchenPages/KitchenPage';
 import AdminPage from './pages/adminPages/AdminPage';
+import NotificationSystem from './components/NotificationSystem';
+import OfflineBanner from './components/OfflineBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 import { getUser, isAuthenticated } from './auth';
 
 function PrivateRoute({ children, role }) {
@@ -18,33 +21,41 @@ function PrivateRoute({ children, role }) {
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/caja" element={
-            <PrivateRoute role="caja">
-              <CajaPage />
-            </PrivateRoute>
-          } />
-          <Route path="/mozo" element={
-            <PrivateRoute role="mozo">
-              <MozoPage />
-            </PrivateRoute>
-          } />
-          <Route path="/cocina" element={
-            <PrivateRoute role="cocina">
-              <KitchenPage />
-            </PrivateRoute>
-          } />
-          <Route path="/admin" element={
-            <PrivateRoute role="admin">
-              <AdminPage />
-            </PrivateRoute>
-          } />
-        </Routes>
-      </div>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <div className="App">
+          {/* Banner de estado sin conexión */}
+          <OfflineBanner />
+          
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/caja" element={
+              <PrivateRoute role="caja">
+                <CajaPage />
+              </PrivateRoute>
+            } />
+            <Route path="/mozo" element={
+              <PrivateRoute role="mozo">
+                <MozoPage />
+              </PrivateRoute>
+            } />
+            <Route path="/cocina" element={
+              <PrivateRoute role="cocina">
+                <KitchenPage />
+              </PrivateRoute>
+            } />
+            <Route path="/admin" element={
+              <PrivateRoute role="admin">
+                <AdminPage />
+              </PrivateRoute>
+            } />
+          </Routes>
+          
+          {/* Sistema de notificaciones global */}
+          {isAuthenticated() && <NotificationSystem />}
+        </div>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

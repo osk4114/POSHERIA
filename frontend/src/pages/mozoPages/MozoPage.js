@@ -1,136 +1,156 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../../api';
-import { getUser, logout } from '../../auth';
 import { connectSocket, onForceLogout, disconnectSocket } from '../../socket';
-import '../../AppBase.css';
+import { getUser, logout } from '../../auth';
+import './MozoPage.css';
 
 const MozoPage = () => {
   const user = getUser();
-  const [socketError, setSocketError] = useState(null);
-  const [activeSection, setActiveSection] = useState('mesas');
-  
-  // Estados para mesas y pedidos
+  const [activeTab, setActiveTab] = useState('mesas');
   const [mesas, setMesas] = useState([]);
-  const [mesaAsignada, setMesaAsignada] = useState(null);
-  const [pedidos, setPedidos] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
-  
-  // Estados para crear pedidos
-  const [selectedMesa, setSelectedMesa] = useState(null);
+  const [myTables, setMyTables] = useState([]);
+  const [selectedTable, setSelectedTable] = useState(null);
   const [currentOrder, setCurrentOrder] = useState([]);
-  const [orderNotes, setOrderNotes] = useState('');
-  
-  // Estados para add-ons
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [addOnItems, setAddOnItems] = useState([]);
-  
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [addOnHistory, setAddOnHistory] = useState([]);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showAddOnModal, setShowAddOnModal] = useState(false);
+  const [selectedParentOrder, setSelectedParentOrder] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Socket connection
+  // Socket connection useEffect
   useEffect(() => {
     if (user && user._id) {
       const socket = connectSocket(user._id);
       onForceLogout(() => {
         logout(() => window.location.reload());
       });
+      
       if (socket) {
         socket.on('disconnect', () => {
-          setSocketError('Conexión perdida con el servidor. Tu sesión ha sido cerrada.');
-          logout(() => window.location.reload());
+          console.log('Socket disconnected');
         });
         
-        // Escuchar actualizaciones de pedidos y mesas
-        socket.on('orderUpdated', (order) => {
-          setPedidos(prevPedidos => 
-            prevPedidos.map(p => p._id === order._id ? order : p)
-          );
-        });
-
-        socket.on('tableUpdated', (table) => {
+        socket.on('tableUpdated', (updatedTable) => {
           setMesas(prevMesas => 
-            prevMesas.map(m => m._id === table._id ? table : m)
+            prevMesas.map(mesa => 
+              mesa._id === updatedTable._id ? updatedTable : mesa
+            )
           );
+          setMyTables(prevTables => 
+            prevTables.map(mesa => 
+              mesa._id === updatedTable._id ? updatedTable : mesa
+            )
+          );
+        });
+
+        socket.on('newOrder', (newOrder) => {
+          if (newOrder.table && myTables.some(t => t._id === newOrder.table)) {
+            fetchOrderHistory();
+          }
         });
       }
     }
+    
     return () => disconnectSocket();
-  }, [user]);
+  }, [user, myTables]);
 
-  // Función para cargar datos iniciales
-  const fetchInitialData = useCallback(async () => {
-    try {
-      const [mesasRes, menuRes, pedidosRes] = await Promise.all([
-        api.get('/api/tables'),
-        api.get('/api/menu'),
-        api.get('/api/orders')
-      ]);
-      
-      setMesas(mesasRes.data);
-      setMenuItems(menuRes.data);
-      setPedidos(pedidosRes.data);
-      
-      // Buscar mesa asignada al mozo
-      const mesaAsignada = mesasRes.data.find(mesa => 
-        mesa.assignedWaiter === user._id && mesa.status === 'ocupada'
-      );
-      if (mesaAsignada) {
-        setMesaAsignada(mesaAsignada);
-      }
-    } catch (err) {
-      setError('Error al cargar datos iniciales');
-    }
-  }, [user]);
-
-  // Cargar datos iniciales
+  // Data fetching useEffect
   useEffect(() => {
-    if (user && (user.role === 'mozo' || user.role === 'admin')) {
-      fetchInitialData();
-    }
-  }, [user, fetchInitialData]);
+    fetchTables();
+    fetchMenu();
+    fetchMyTables();
+    fetchOrderHistory();
+  }, [user]);
 
-  // Verificar acceso
-  if (!user || (user.role !== 'mozo' && user.role !== 'admin')) {
-    return (
-      <div className="access-denied">
-        <h2>Acceso Denegado</h2>
-        <p>Debes iniciar sesión como mozo o administrador.</p>
-      </div>
-    );
-  }
-
-  const asignarMesa = async (mesaId) => {
+  const fetchTables = async () => {
     try {
-      await api.put(`/api/tables/${mesaId}`, {
-        status: 'ocupada',
-        assignedWaiter: user._id
-      });
-      
-      const mesaActualizada = mesas.find(m => m._id === mesaId);
-      setMesaAsignada({ ...mesaActualizada, status: 'ocupada', assignedWaiter: user._id });
-      setSuccess('Mesa asignada correctamente');
-      fetchInitialData();
+      const response = await api.get('/api/tables');
+      setMesas(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      setError('Error al asignar mesa');
+      console.error('Error fetching tables:', err);
     }
   };
 
-  const liberarMesa = async () => {
-    if (!mesaAsignada) return;
+  const fetchMenu = async () => {
+    try {
+      const response = await api.get('/api/menu');
+      setMenuItems(Array.isArray(response.data) ? response.data.filter(item => item.available) : []);
+    } catch (err) {
+      console.error('Error fetching menu:', err);
+    }
+  };
+
+  const fetchMyTables = async () => {
+    try {
+      const response = await api.get('/api/tables');
+      const tables = Array.isArray(response.data) ? response.data : [];
+      const assignedTables = tables.filter(table => 
+        table.waiterId === user._id && table.waiterStatus === 'atendiendo'
+      );
+      setMyTables(assignedTables);
+    } catch (err) {
+      console.error('Error fetching my tables:', err);
+    }
+  };
+
+  const fetchOrderHistory = async () => {
+    try {
+      const response = await api.get('/api/orders');
+      const orders = Array.isArray(response.data) ? response.data : [];
+      
+      const myTableIds = myTables.map(t => t._id);
+      const myOrders = orders.filter(order => 
+        order.table && myTableIds.includes(order.table)
+      );
+      
+      const mainOrders = myOrders.filter(order => order.type !== 'add-on');
+      const addOns = myOrders.filter(order => order.type === 'add-on');
+      
+      setOrderHistory(mainOrders);
+      setAddOnHistory(addOns);
+    } catch (err) {
+      console.error('Error fetching order history:', err);
+    }
+  };
+
+  const takeTable = async (tableId) => {
+    try {
+      setLoading(true);
+      await api.post(`/api/tables/${tableId}/asignar`);
+      setSuccess('Mesa asignada correctamente');
+      fetchTables();
+      fetchMyTables();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al tomar la mesa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const releaseTable = async (tableId) => {
+    if (!window.confirm('¿Estás seguro de liberar esta mesa?')) {
+      return;
+    }
     
     try {
-      await api.put(`/api/tables/${mesaAsignada._id}`, {
-        status: 'disponible',
-        assignedWaiter: null
-      });
-      
-      setMesaAsignada(null);
-      setSelectedMesa(null);
-      setCurrentOrder([]);
+      setLoading(true);
+      await api.post(`/api/tables/${tableId}/liberar`);
       setSuccess('Mesa liberada correctamente');
-      fetchInitialData();
+      fetchTables();
+      fetchMyTables();
+      
+      if (selectedTable && selectedTable._id === tableId) {
+        setSelectedTable(null);
+        setCurrentOrder([]);
+      }
     } catch (err) {
-      setError('Error al liberar mesa');
+      setError(err.response?.data?.message || 'Error al liberar la mesa');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -161,518 +181,441 @@ const MozoPage = () => {
     ));
   };
 
-  const crearPedido = async () => {
-    if (!mesaAsignada || currentOrder.length === 0) {
+  const calculateTotal = () => {
+    return currentOrder.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const submitOrder = async (isAddOn = false) => {
+    if (!selectedTable || currentOrder.length === 0) {
       setError('Selecciona una mesa y agrega productos');
       return;
     }
 
     try {
+      setLoading(true);
+      
       const orderData = {
-        table: mesaAsignada._id,
-        waiter: user._id,
         products: currentOrder.map(item => ({
           productId: item._id,
           name: item.name,
           quantity: item.quantity,
           price: item.price
         })),
-        notes: orderNotes,
-        status: 'pendiente'
+        table: selectedTable._id,
+        type: isAddOn ? 'add-on' : 'dine-in'
       };
 
-      await api.post('/api/orders', orderData);
+      if (isAddOn && selectedParentOrder) {
+        orderData.parentOrderId = selectedParentOrder._id;
+      }
+
+      const endpoint = isAddOn ? '/api/orders/addon' : '/api/orders';
+      await api.post(endpoint, orderData);
       
-      // Limpiar pedido actual
+      setSuccess(isAddOn ? 'Añadido creado correctamente' : 'Pedido creado correctamente');
       setCurrentOrder([]);
-      setOrderNotes('');
-      
-      setSuccess('Pedido creado correctamente');
-      fetchInitialData();
+      setShowOrderModal(false);
+      setShowAddOnModal(false);
+      setSelectedParentOrder(null);
+      fetchOrderHistory();
     } catch (err) {
-      setError('Error al crear pedido');
+      setError(err.response?.data?.message || 'Error al crear el pedido');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const addToAddOn = (item) => {
-    const existingItem = addOnItems.find(addOnItem => addOnItem._id === item._id);
-    if (existingItem) {
-      setAddOnItems(addOnItems.map(addOnItem =>
-        addOnItem._id === item._id
-          ? { ...addOnItem, quantity: addOnItem.quantity + 1 }
-          : addOnItem
-      ));
+  const getTableStatus = (table) => {
+    if (table.waiterId === user._id) {
+      return 'mine';
+    } else if (table.waiterId) {
+      return 'taken';
     } else {
-      setAddOnItems([...addOnItems, { ...item, quantity: 1 }]);
+      return 'free';
     }
   };
 
-  const crearAddOn = async () => {
-    if (!selectedOrder || addOnItems.length === 0) {
-      setError('Selecciona un pedido y agrega productos');
-      return;
-    }
-
-    try {
-      const addOnData = {
-        originalOrder: selectedOrder._id,
-        table: selectedOrder.table,
-        waiter: user._id,
-        products: addOnItems.map(item => ({
-          productId: item._id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        type: 'add-on',
-        status: 'pendiente'
-      };
-
-      await api.post('/api/orders', addOnData);
-      
-      // Limpiar add-on actual
-      setAddOnItems([]);
-      setSelectedOrder(null);
-      
-      setSuccess('Add-on creado correctamente');
-      fetchInitialData();
-    } catch (err) {
-      setError('Error al crear add-on');
-    }
-  };
-
-  const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-      await api.put(`/api/orders/${orderId}`, { status: newStatus });
-      setSuccess(`Estado del pedido actualizado a: ${newStatus}`);
-      fetchInitialData();
-    } catch (err) {
-      setError('Error al actualizar estado del pedido');
-    }
-  };
-
-  const mesasDisponibles = mesas.filter(m => m.status === 'disponible' || m.status === 'limpieza');
-  const pedidosMesa = mesaAsignada ? pedidos.filter(p => p.table && p.table._id === mesaAsignada._id) : [];
+  if (!user || user.role !== 'mozo') {
+    return (
+      <div className="access-denied">
+        <h2>Acceso Denegado</h2>
+        <p>Debes iniciar sesión como mozo.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mozo-container">
-      {/* Sidebar */}
-      <div className="mozo-sidebar">
-        <div className="mozo-sidebar-header">
-          <h2>🧑‍🍳 Mozo</h2>
-          <div className="mozo-user-info">
-            <div className="mozo-user-avatar">👤</div>
-            <div className="mozo-user-details">
-              <span className="mozo-user-name">{user?.name || 'Mozo'}</span>
-              <span className="mozo-user-role">Mesero</span>
-            </div>
-          </div>
-        </div>
-
-        <nav className="mozo-sidebar-nav">
-          <button 
-            onClick={() => setActiveSection('mesas')}
-            className={`mozo-nav-btn ${activeSection === 'mesas' ? 'active' : ''}`}
-          >
-            <span className="nav-icon">🪑</span>
-            Mesas
-          </button>
-          <button 
-            onClick={() => setActiveSection('pedidos')}
-            className={`mozo-nav-btn ${activeSection === 'pedidos' ? 'active' : ''}`}
-          >
-            <span className="nav-icon">📋</span>
-            Pedidos
-          </button>
-          <button 
-            onClick={() => setActiveSection('nuevo-pedido')}
-            className={`mozo-nav-btn ${activeSection === 'nuevo-pedido' ? 'active' : ''}`}
-          >
-            <span className="nav-icon">➕</span>
-            Nuevo Pedido
-          </button>
-          <button 
-            onClick={() => setActiveSection('add-ons')}
-            className={`mozo-nav-btn ${activeSection === 'add-ons' ? 'active' : ''}`}
-          >
-            <span className="nav-icon">🍽️</span>
-            Add-ons
-          </button>
-        </nav>
-
-        <div className="mozo-sidebar-footer">
-          <button 
-            className="mozo-logout-btn"
-            onClick={() => logout(() => window.location.href = '/')}
-          >
-            🚪 Cerrar Sesión
+    <div className="mozo-page">
+      <div className="page-header">
+        <h1>Panel del Mozo</h1>
+        <div className="user-info">
+          <span>Bienvenido, {user.name}</span>
+          <button className="btn btn-secondary" onClick={() => logout(() => window.location.reload())}>
+            Cerrar Sesión
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="mozo-main-content">
-        <div className="mozo-content-header">
-          <h1>
-            {activeSection === 'mesas' && '🪑 Gestión de Mesas'}
-            {activeSection === 'pedidos' && '📋 Pedidos Activos'}
-            {activeSection === 'nuevo-pedido' && '➕ Crear Nuevo Pedido'}
-            {activeSection === 'add-ons' && '🍽️ Agregar Add-ons'}
-          </h1>
-          <div className="mozo-status">
-            {mesaAsignada ? (
-              <span className="mesa-assigned">
-                📍 Mesa {mesaAsignada.number} Asignada
-              </span>
-            ) : (
-              <span className="mesa-not-assigned">
-                ⚪ Sin Mesa Asignada
-              </span>
-            )}
+      {error && (
+        <div className="alert alert-error">
+          {error}
+          <button onClick={() => setError(null)}>×</button>
+        </div>
+      )}
+      {success && (
+        <div className="alert alert-success">
+          {success}
+          <button onClick={() => setSuccess(null)}>×</button>
+        </div>
+      )}
+
+      <div className="tabs">
+        <button 
+          className={`tab ${activeTab === 'mesas' ? 'active' : ''}`}
+          onClick={() => setActiveTab('mesas')}
+        >
+          Mesas Disponibles
+        </button>
+        <button 
+          className={`tab ${activeTab === 'mis-mesas' ? 'active' : ''}`}
+          onClick={() => setActiveTab('mis-mesas')}
+        >
+          Mis Mesas
+        </button>
+        <button 
+          className={`tab ${activeTab === 'historial' ? 'active' : ''}`}
+          onClick={() => setActiveTab('historial')}
+        >
+          Historial
+        </button>
+      </div>
+
+      {activeTab === 'mesas' && (
+        <div className="tables-section">
+          <h3>Mesas Disponibles</h3>
+          <div className="tables-grid">
+            {mesas.map(mesa => {
+              const status = getTableStatus(mesa);
+              return (
+                <div key={mesa._id} className={`table-card ${status}`}>
+                  <div className="table-header">
+                    <h4>Mesa {mesa.number}</h4>
+                    <span className={`status-badge ${status}`}>
+                      {status === 'mine' ? 'Mía' : 
+                       status === 'taken' ? 'Ocupada' : 'Libre'}
+                    </span>
+                  </div>
+                  <div className="table-actions">
+                    {status === 'free' && (
+                      <button 
+                        className="btn btn-primary"
+                        onClick={() => takeTable(mesa._id)}
+                        disabled={loading}
+                      >
+                        Tomar Mesa
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
+      )}
 
-        {/* Mensajes de estado */}
-        {error && <div className="mozo-error-msg">{error}</div>}
-        {success && <div className="mozo-success-msg">{success}</div>}
-        {socketError && <div className="mozo-error-msg">{socketError}</div>}
-
-        {/* Sección de Mesas */}
-        {activeSection === 'mesas' && (
-          <div className="mozo-mesas-section">
-            {mesaAsignada ? (
-              <div className="mesa-asignada-info">
-                <h3>Mesa Asignada: #{mesaAsignada.number}</h3>
-                <div className="mesa-actions">
-                  <button 
-                    className="mozo-btn mozo-btn-danger"
-                    onClick={liberarMesa}
-                  >
-                    Liberar Mesa
-                  </button>
-                  <button 
-                    className="mozo-btn mozo-btn-primary"
-                    onClick={() => setActiveSection('nuevo-pedido')}
-                  >
-                    Crear Pedido
-                  </button>
+      {activeTab === 'mis-mesas' && (
+        <div className="my-tables-section">
+          <h3>Mis Mesas Asignadas</h3>
+          {myTables.length === 0 ? (
+            <div className="empty-state">
+              <p>No tienes mesas asignadas</p>
+              <p>Ve a la pestaña "Mesas Disponibles" para tomar una mesa</p>
+            </div>
+          ) : (
+            <div className="tables-grid">
+              {myTables.map(mesa => (
+                <div key={mesa._id} className="table-card mine">
+                  <div className="table-header">
+                    <h4>Mesa {mesa.number}</h4>
+                    <span className="status-badge mine">Mía</span>
+                  </div>
+                  <div className="table-info">
+                    <p>Estado: {mesa.status}</p>
+                    <p>Pedidos activos: {orderHistory.filter(o => o.table === mesa._id && o.status !== 'delivered').length}</p>
+                  </div>
+                  <div className="table-actions">
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setSelectedTable(mesa);
+                        setShowOrderModal(true);
+                      }}
+                    >
+                      Crear Pedido
+                    </button>
+                    <button 
+                      className="btn btn-outline"
+                      onClick={() => {
+                        setSelectedTable(mesa);
+                        setShowAddOnModal(true);
+                      }}
+                    >
+                      Añadir Items
+                    </button>
+                    <button 
+                      className="btn btn-danger"
+                      onClick={() => releaseTable(mesa._id)}
+                    >
+                      Liberar
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="mesas-disponibles">
-                <h3>Mesas Disponibles para Asignar</h3>
-                <div className="mesas-grid">
-                  {mesasDisponibles.map(mesa => (
-                    <div key={mesa._id} className="mesa-card">
-                      <div className="mesa-number">Mesa {mesa.number}</div>
-                      <div className="mesa-status">{mesa.status}</div>
-                      <div className="mesa-capacity">
-                        👥 {mesa.capacity} personas
-                      </div>
-                      <button 
-                        className="mozo-btn mozo-btn-success"
-                        onClick={() => asignarMesa(mesa._id)}
-                      >
-                        Asignar Mesa
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* Sección de Pedidos */}
-        {activeSection === 'pedidos' && (
-          <div className="mozo-pedidos-section">
-            <h3>Pedidos de Mesa {mesaAsignada?.number || 'N/A'}</h3>
-            <div className="pedidos-list">
-              {pedidosMesa.length === 0 ? (
-                <p className="no-pedidos">No hay pedidos para esta mesa</p>
-              ) : (
-                pedidosMesa.map(pedido => (
-                  <div key={pedido._id} className="pedido-card">
-                    <div className="pedido-header">
-                      <span className="pedido-id">#{pedido._id.slice(-6)}</span>
-                      <span className={`pedido-status status-${pedido.status}`}>
-                        {pedido.status}
-                      </span>
-                      <span className="pedido-time">
-                        {new Date(pedido.createdAt).toLocaleTimeString()}
+      {activeTab === 'historial' && (
+        <div className="history-section">
+          <h3>Historial de Pedidos</h3>
+          {orderHistory.length === 0 ? (
+            <div className="empty-state">
+              <p>No hay pedidos registrados</p>
+              <p>Crea tu primer pedido desde "Mis Mesas"</p>
+            </div>
+          ) : (
+            <div className="orders-list">
+              {orderHistory.map(order => {
+                const relatedAddOns = addOnHistory.filter(addon => addon.parentOrderId === order._id);
+                return (
+                  <div key={order._id} className={`order-item ${order.status}`}>
+                    <div className="order-header">
+                      <h4>Mesa {order.table} - {order.status}</h4>
+                      <span className="order-total">
+                        S/. {order.products.reduce((total, p) => total + (p.price * p.quantity), 0).toFixed(2)}
                       </span>
                     </div>
-                    <div className="pedido-items">
-                      {pedido.products?.map((product, idx) => (
-                        <div key={idx} className="pedido-item">
-                          <span>{product.name}</span>
-                          <span>x{product.quantity}</span>
-                          <span>S/ {product.price}</span>
+                    <div className="order-products">
+                      {order.products.map((product, index) => (
+                        <div key={index} className="product-line">
+                          {product.quantity}x {product.name} - S/. {(product.price * product.quantity).toFixed(2)}
                         </div>
                       ))}
                     </div>
-                    {pedido.notes && (
-                      <div className="pedido-notes">
-                        📝 {pedido.notes}
+                    {relatedAddOns.length > 0 && (
+                      <div className="add-ons-section">
+                        <h5>Añadidos ({relatedAddOns.length})</h5>
+                        {relatedAddOns.map(addon => (
+                          <div key={addon._id} className="addon-item">
+                            {addon.products.map((product, index) => (
+                              <div key={index} className="product-line addon">
+                                + {product.quantity}x {product.name} - S/. {(product.price * product.quantity).toFixed(2)}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
                       </div>
                     )}
-                    <div className="pedido-actions">
-                      {pedido.status === 'pendiente' && (
-                        <button 
-                          className="mozo-btn mozo-btn-warning"
-                          onClick={() => updateOrderStatus(pedido._id, 'en-preparacion')}
-                        >
-                          Marcar en Preparación
-                        </button>
-                      )}
-                      {pedido.status === 'listo' && (
-                        <button 
-                          className="mozo-btn mozo-btn-success"
-                          onClick={() => updateOrderStatus(pedido._id, 'entregado')}
-                        >
-                          Marcar Entregado
-                        </button>
-                      )}
-                      <button 
-                        className="mozo-btn mozo-btn-secondary"
-                        onClick={() => {
-                          setSelectedOrder(pedido);
-                          setActiveSection('add-ons');
-                        }}
-                      >
-                        Agregar Add-on
-                      </button>
+                    <div className="order-footer">
+                      <small>
+                        Creado: {new Date(order.createdAt).toLocaleString()}
+                      </small>
                     </div>
                   </div>
-                ))
-              )}
+                );
+              })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {/* Sección Nuevo Pedido */}
-        {activeSection === 'nuevo-pedido' && mesaAsignada && (
-          <div className="mozo-nuevo-pedido-section">
-            <div className="nuevo-pedido-layout">
-              {/* Panel izquierdo - Menú */}
-              <div className="menu-panel">
-                <h3>📋 Menú</h3>
-                <div className="menu-grid">
-                  {menuItems.map(item => (
-                    <div key={item._id} className="menu-item-card">
-                      <h4>{item.name}</h4>
-                      <p className="menu-item-description">{item.description}</p>
-                      <div className="menu-item-footer">
-                        <span className="menu-item-price">S/ {item.price}</span>
-                        <button 
-                          className="mozo-btn mozo-btn-success"
-                          onClick={() => addToOrder(item)}
-                        >
-                          Agregar
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Panel derecho - Pedido actual */}
-              <div className="order-panel">
-                <h3>🛒 Nuevo Pedido - Mesa {mesaAsignada.number}</h3>
-                
-                {/* Items del pedido */}
-                <div className="order-items">
-                  {currentOrder.length === 0 ? (
-                    <p className="empty-order">No hay items en el pedido</p>
+      {/* Modal Crear Pedido */}
+      {showOrderModal && (
+        <div className="modal">
+          <div className="modal-content large">
+            <div className="modal-header">
+              <h3>Crear Pedido - Mesa {selectedTable?.number}</h3>
+              <button className="close-btn" onClick={() => setShowOrderModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="order-creation">
+                <div className="menu-section">
+                  <h4>Menú Disponible</h4>
+                  {menuItems.length === 0 ? (
+                    <p>No hay productos disponibles en el menú</p>
                   ) : (
-                    currentOrder.map(item => (
-                      <div key={item._id} className="order-item">
-                        <div className="order-item-info">
-                          <span className="order-item-name">{item.name}</span>
-                          <span className="order-item-price">S/ {item.price}</span>
-                        </div>
-                        <div className="order-item-controls">
-                          <button 
-                            className="quantity-btn"
-                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                          >
-                            -
-                          </button>
-                          <span className="quantity">{item.quantity}</span>
-                          <button 
-                            className="quantity-btn"
-                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                          >
-                            +
-                          </button>
-                          <button 
-                            className="remove-btn"
-                            onClick={() => removeFromOrder(item._id)}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Notas del pedido */}
-                <div className="order-notes">
-                  <label>📝 Notas especiales:</label>
-                  <textarea
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                    placeholder="Instrucciones especiales para la cocina..."
-                    className="mozo-textarea"
-                  />
-                </div>
-
-                {/* Botón crear pedido */}
-                <div className="order-footer">
-                  <button 
-                    className="mozo-btn mozo-btn-primary full-width"
-                    onClick={crearPedido}
-                    disabled={currentOrder.length === 0}
-                  >
-                    🍽️ Enviar a Cocina
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Sección Add-ons */}
-        {activeSection === 'add-ons' && (
-          <div className="mozo-addons-section">
-            <div className="addons-layout">
-              {/* Selección de pedido */}
-              <div className="addon-order-selection">
-                <h3>Seleccionar Pedido</h3>
-                <div className="pedidos-para-addon">
-                  {pedidosMesa.filter(p => p.status !== 'entregado' && p.type !== 'add-on').map(pedido => (
-                    <div 
-                      key={pedido._id} 
-                      className={`pedido-selectable ${selectedOrder?._id === pedido._id ? 'selected' : ''}`}
-                      onClick={() => setSelectedOrder(pedido)}
-                    >
-                      <span>Pedido #{pedido._id.slice(-6)}</span>
-                      <span className={`status-${pedido.status}`}>{pedido.status}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {selectedOrder && (
-                <div className="addon-creation">
-                  {/* Panel izquierdo - Menú para add-on */}
-                  <div className="menu-panel">
-                    <h3>📋 Agregar Items</h3>
                     <div className="menu-grid">
                       {menuItems.map(item => (
-                        <div key={item._id} className="menu-item-card">
-                          <h4>{item.name}</h4>
-                          <p className="menu-item-description">{item.description}</p>
-                          <div className="menu-item-footer">
-                            <span className="menu-item-price">S/ {item.price}</span>
+                        <div key={item._id} className="menu-item">
+                          <h5>{item.name}</h5>
+                          <p className="price">S/. {item.price.toFixed(2)}</p>
+                          {item.description && <p className="description">{item.description}</p>}
+                          <button 
+                            className="btn btn-sm btn-primary"
+                            onClick={() => addToOrder(item)}
+                          >
+                            Agregar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="order-section">
+                  <h4>Pedido Actual</h4>
+                  {currentOrder.length === 0 ? (
+                    <p>No hay productos en el pedido</p>
+                  ) : (
+                    <>
+                      <div className="order-items">
+                        {currentOrder.map(item => (
+                          <div key={item._id} className="order-item-line">
+                            <span className="item-name">{item.name}</span>
+                            <div className="quantity-controls">
+                              <button onClick={() => updateQuantity(item._id, item.quantity - 1)}>-</button>
+                              <span>{item.quantity}</span>
+                              <button onClick={() => updateQuantity(item._id, item.quantity + 1)}>+</button>
+                            </div>
+                            <span className="item-total">S/. {(item.price * item.quantity).toFixed(2)}</span>
                             <button 
-                              className="mozo-btn mozo-btn-success"
-                              onClick={() => addToAddOn(item)}
+                              className="btn btn-sm btn-danger"
+                              onClick={() => removeFromOrder(item._id)}
                             >
-                              Agregar
+                              ×
                             </button>
                           </div>
+                        ))}
+                      </div>
+                      <div className="order-total-line">
+                        <strong>Total: S/. {calculateTotal().toFixed(2)}</strong>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowOrderModal(false)}>
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => submitOrder(false)}
+                disabled={loading || currentOrder.length === 0}
+              >
+                {loading ? 'Creando...' : 'Crear Pedido'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Añadir Items */}
+      {showAddOnModal && (
+        <div className="modal">
+          <div className="modal-content large">
+            <div className="modal-header">
+              <h3>Añadir Items - Mesa {selectedTable?.number}</h3>
+              <button className="close-btn" onClick={() => setShowAddOnModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="parent-order-selection">
+                <h4>Seleccionar Pedido Principal</h4>
+                {orderHistory
+                  .filter(order => order.table === selectedTable?._id && order.status !== 'delivered')
+                  .length === 0 ? (
+                  <p>No hay pedidos activos para esta mesa</p>
+                ) : (
+                  <div className="parent-orders">
+                    {orderHistory
+                      .filter(order => order.table === selectedTable?._id && order.status !== 'delivered')
+                      .map(order => (
+                        <div 
+                          key={order._id} 
+                          className={`parent-order ${selectedParentOrder?._id === order._id ? 'selected' : ''}`}
+                          onClick={() => setSelectedParentOrder(order)}
+                        >
+                          <h5>Pedido #{order._id.slice(-6)}</h5>
+                          <p>Estado: {order.status}</p>
+                          <p>Items: {order.products.length}</p>
+                          <p>Total: S/. {order.products.reduce((total, p) => total + (p.price * p.quantity), 0).toFixed(2)}</p>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+              
+              {selectedParentOrder && (
+                <div className="order-creation">
+                  <div className="menu-section">
+                    <h4>Menú Disponible</h4>
+                    <div className="menu-grid">
+                      {menuItems.map(item => (
+                        <div key={item._id} className="menu-item">
+                          <h5>{item.name}</h5>
+                          <p className="price">S/. {item.price.toFixed(2)}</p>
+                          <button 
+                            className="btn btn-sm btn-primary"
+                            onClick={() => addToOrder(item)}
+                          >
+                            Agregar
+                          </button>
                         </div>
                       ))}
                     </div>
                   </div>
-
-                  {/* Panel derecho - Add-on actual */}
-                  <div className="addon-panel">
-                    <h3>➕ Add-on para Pedido #{selectedOrder._id.slice(-6)}</h3>
-                    
-                    <div className="addon-items">
-                      {addOnItems.length === 0 ? (
-                        <p className="empty-addon">No hay items en el add-on</p>
-                      ) : (
-                        addOnItems.map(item => (
-                          <div key={item._id} className="addon-item">
-                            <div className="addon-item-info">
-                              <span className="addon-item-name">{item.name}</span>
-                              <span className="addon-item-price">S/ {item.price}</span>
-                            </div>
-                            <div className="addon-item-controls">
+                  
+                  <div className="order-section">
+                    <h4>Items a Añadir</h4>
+                    {currentOrder.length === 0 ? (
+                      <p>No hay productos seleccionados</p>
+                    ) : (
+                      <>
+                        <div className="order-items">
+                          {currentOrder.map(item => (
+                            <div key={item._id} className="order-item-line">
+                              <span className="item-name">{item.name}</span>
+                              <div className="quantity-controls">
+                                <button onClick={() => updateQuantity(item._id, item.quantity - 1)}>-</button>
+                                <span>{item.quantity}</span>
+                                <button onClick={() => updateQuantity(item._id, item.quantity + 1)}>+</button>
+                              </div>
+                              <span className="item-total">S/. {(item.price * item.quantity).toFixed(2)}</span>
                               <button 
-                                className="quantity-btn"
-                                onClick={() => {
-                                  const updatedItems = addOnItems.map(addOnItem =>
-                                    addOnItem._id === item._id
-                                      ? { ...addOnItem, quantity: Math.max(0, addOnItem.quantity - 1) }
-                                      : addOnItem
-                                  ).filter(addOnItem => addOnItem.quantity > 0);
-                                  setAddOnItems(updatedItems);
-                                }}
+                                className="btn btn-sm btn-danger"
+                                onClick={() => removeFromOrder(item._id)}
                               >
-                                -
-                              </button>
-                              <span className="quantity">{item.quantity}</span>
-                              <button 
-                                className="quantity-btn"
-                                onClick={() => {
-                                  setAddOnItems(addOnItems.map(addOnItem =>
-                                    addOnItem._id === item._id
-                                      ? { ...addOnItem, quantity: addOnItem.quantity + 1 }
-                                      : addOnItem
-                                  ));
-                                }}
-                              >
-                                +
-                              </button>
-                              <button 
-                                className="remove-btn"
-                                onClick={() => {
-                                  setAddOnItems(addOnItems.filter(addOnItem => addOnItem._id !== item._id));
-                                }}
-                              >
-                                🗑️
+                                ×
                               </button>
                             </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    <div className="addon-footer">
-                      <button 
-                        className="mozo-btn mozo-btn-primary full-width"
-                        onClick={crearAddOn}
-                        disabled={addOnItems.length === 0}
-                      >
-                        ➕ Crear Add-on
-                      </button>
-                    </div>
+                          ))}
+                        </div>
+                        <div className="order-total-line">
+                          <strong>Total Añadido: S/. {calculateTotal().toFixed(2)}</strong>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
             </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowAddOnModal(false)}>
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => submitOrder(true)}
+                disabled={loading || currentOrder.length === 0 || !selectedParentOrder}
+              >
+                {loading ? 'Añadiendo...' : 'Añadir Items'}
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* Mensaje si no hay mesa asignada en secciones que la requieren */}
-        {!mesaAsignada && ['nuevo-pedido', 'pedidos', 'add-ons'].includes(activeSection) && (
-          <div className="no-mesa-warning">
-            <h3>⚠️ No tienes mesa asignada</h3>
-            <p>Primero debes asignar una mesa para poder gestionar pedidos.</p>
-            <button 
-              className="mozo-btn mozo-btn-primary"
-              onClick={() => setActiveSection('mesas')}
-            >
-              Ir a Mesas
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

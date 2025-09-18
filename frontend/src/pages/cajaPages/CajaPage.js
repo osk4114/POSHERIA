@@ -62,11 +62,16 @@ const CajaPage = () => {
         api.get('/api/orders')
       ]);
       
-      setMesas(mesasRes.data);
-      setMenuItems(menuRes.data);
-      setPedidos(pedidosRes.data.filter(p => p.status !== 'pagado'));
+      setMesas(Array.isArray(mesasRes.data) ? mesasRes.data : []);
+      setMenuItems(Array.isArray(menuRes.data) ? menuRes.data : []);
+      setPedidos(Array.isArray(pedidosRes.data) ? pedidosRes.data.filter(p => p.status !== 'pagado') : []);
     } catch (err) {
+      console.error('Error al cargar datos iniciales:', err);
       setError('Error al cargar datos iniciales');
+      // Establecer valores por defecto en caso de error
+      setMesas([]);
+      setMenuItems([]);
+      setPedidos([]);
     }
   }, []);
 

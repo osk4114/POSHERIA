@@ -68,6 +68,8 @@ module.exports = {
   payOrder,
   createAddOnOrder,
   listAddOns,
+  getStatsToday,
+  getOrderHistory,
 };
 // controllers/orderController.js
 const { getDB } = require('../config/mongo');
@@ -235,6 +237,78 @@ async function payOrder(req, res) {
   } catch (err) {
     console.log('[payOrder] RETURN: Error inesperado', err);
     res.status(500).json({ message: 'Error paying order', error: err.message });
+  }
+}
+
+// Obtener estadísticas del día para reportes admin
+async function getStatsToday(req, res) {
+  try {
+    const db = getDB();
+    const orders = db.collection('orders');
+    
+    // Obtener fecha de hoy (inicio y fin del día)
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    
+    // Contar pedidos del día
+    const totalPedidos = await orders.countDocuments({
+      createdAt: { $gte: startOfDay, $lt: endOfDay }
+    });
+    
+    res.json({ total: totalPedidos });
+  } catch (err) {
+    res.status(500).json({ message: 'Error al obtener estadísticas', error: err.message });
+  }
+}
+
+// Obtener historial completo de pedidos para admin
+async function getOrderHistory(req, res) {
+  try {
+    const db = getDB();
+    const orders = db.collection('orders');
+    
+    // Obtener pedidos ordenados por fecha (más recientes primero)
+    const pedidos = await orders.find({})
+      .sort({ createdAt: -1 })
+      .limit(100) // Limitar a 100 pedidos más recientes
+      .toArray();
+    
+    // Poblar información de mozo y mesa
+    const users = db.collection('users');
+    const tables = db.collection('tables');
+    
+    for (let pedido of pedidos) {
+      // Obtener información del mozo
+      if (pedido.waiter) {
+        const mozo = await users.findOne({ _id: pedido.waiter });
+        pedido.waiter = mozo ? { name: mozo.name, username: mozo.username } : null;
+      }
+      
+      // Obtener número de mesa
+      if (pedido.table) {
+        const mesa = await tables.findOne({ _id: pedido.table });
+        pedido.tableNumber = mesa ? mesa.number : null;
+      }
+      
+      // Calcular total si no existe
+      if (!pedido.total && pedido.products) {
+        pedido.total = pedido.products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+      }
+      
+      // Agregar información de items
+      if (pedido.products) {
+        pedido.items = pedido.products.map(p => ({
+          name: p.name,
+          quantity: p.quantity,
+          price: p.price
+        }));
+      }
+    }
+    
+    res.json(pedidos);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al obtener historial de pedidos', error: err.message });
   }
 }
 

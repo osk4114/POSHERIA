@@ -14,4 +14,8 @@ router.get('/', authMiddleware, orderController.listOrders);
 router.get('/addon', authMiddleware, orderController.listAddOns);
 router.post('/:id/pay', authMiddleware, orderController.payOrder);
 
+// Nuevos endpoints para reportes y estadísticas
+router.get('/estadisticas-hoy', authMiddleware, orderController.getStatsToday);
+router.get('/historial', authMiddleware, orderController.getOrderHistory);
+
 module.exports = router;

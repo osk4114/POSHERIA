@@ -12,6 +12,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.1",
+    "multer": "^2.0.2",
     "react-scripts": "*",
     "socket.io": "^4.8.1"
   },

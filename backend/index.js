@@ -11,6 +11,8 @@ const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const cajaRoutes = require('./routes/cajaRoutes');
 const kitchenRoutes = require('./routes/kitchenRoutes');
+const menuRoutes = require('./routes/menuRoutes');
+const healthRoutes = require('./routes/healthRoutes');
 
 
 const { connectDB } = require('./config/mongo');
@@ -20,6 +22,8 @@ app.use(logger);
 app.use(express.json());
 // Servir archivos estáticos del build de React desde backend/views
 app.use(express.static(path.join(__dirname, 'views')));
+// Servir archivos públicos (imágenes, etc.)
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Rutas backend (API)
 
@@ -28,10 +32,12 @@ app.use(express.static(path.join(__dirname, 'views')));
 
 const tableRoutes = require('./routes/tableRoutes');
 app.use('/api', homeRoutes);
+app.use('/api', healthRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/caja', cajaRoutes);
 app.use('/api/kitchen', kitchenRoutes);
+app.use('/api/menu', menuRoutes);
 app.use('/api/tables', tableRoutes);
 
 // Para cualquier otra ruta, servir index.html de React

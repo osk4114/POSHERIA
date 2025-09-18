@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import AdminDashboardPanel from './AdminDashboardPanel';
 import TableManagement from '../../components/TableManagement';
+import MenuManagement from '../../components/MenuManagement';
+import CajaPage from '../cajaPages/CajaPage';
+import KitchenPage from '../kitchenPages/KitchenPage';
+import MozoPage from '../mozoPages/MozoPage';
 import '../../AppBase.css';
 import api from '../../api';
 import { setSession, getUser, logout } from '../../auth';
@@ -21,6 +25,15 @@ const AdminPage = () => {
   const [statusMsg, setStatusMsg] = useState(null);
   const [socketError, setSocketError] = useState(null);
   const [activeSection, setActiveSection] = useState('usuarios');
+  const [reportes, setReportes] = useState({
+    ventasHoy: 0,
+    pedidosHoy: 0,
+    mesasOcupadas: 0,
+    usuariosActivos: 0
+  });
+  const [pedidos, setPedidos] = useState([]);
+  const [loadingReportes, setLoadingReportes] = useState(false);
+  const [loadingPedidos, setLoadingPedidos] = useState(false);
 
   // Login admin
   const handleLogin = async (e) => {
@@ -71,6 +84,54 @@ const AdminPage = () => {
     } catch (err) {
       setError('Error al obtener usuarios');
     }
+  };
+
+  const fetchReportes = async () => {
+    setLoadingReportes(true);
+    setError(null);
+    try {
+      // Obtener estadísticas del día
+      const [ventasRes, pedidosRes, mesasRes] = await Promise.all([
+        api.get('/api/caja/ventas-hoy').catch(() => ({ data: { total: 0 } })),
+        api.get('/api/orders/estadisticas-hoy').catch(() => ({ data: { total: 0 } })),
+        api.get('/api/tables/ocupadas').catch(() => ({ data: { ocupadas: 0 } }))
+      ]);
+
+      setReportes({
+        ventasHoy: ventasRes.data.total || 0,
+        pedidosHoy: pedidosRes.data.total || 0,
+        mesasOcupadas: mesasRes.data.ocupadas || 0,
+        usuariosActivos: usuarios.length
+      });
+    } catch (err) {
+      setError('Error al obtener reportes');
+    } finally {
+      setLoadingReportes(false);
+    }
+  };
+
+  const fetchPedidos = async () => {
+    setLoadingPedidos(true);
+    setError(null);
+    try {
+      const res = await api.get('/api/orders/historial');
+      setPedidos(res.data);
+    } catch (err) {
+      setError('Error al obtener historial de pedidos');
+    } finally {
+      setLoadingPedidos(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString('es-AR');
   };
 
   const crearUsuario = async (e) => {
@@ -212,12 +273,34 @@ const AdminPage = () => {
           <h1>
             {activeSection === 'usuarios' && 'Gestión de Usuarios'}
             {activeSection === 'mesas' && 'Gestión de Mesas'}
+            {activeSection === 'menu' && 'Gestión de Menú'}
+            {activeSection === 'caja' && 'Sistema de Caja'}
+            {activeSection === 'cocina' && 'Dashboard de Cocina'}
+            {activeSection === 'mozo' && 'Sistema de Mozos'}
             {activeSection === 'reportes' && 'Reportes y Estadísticas'}
             {activeSection === 'pedidos' && 'Historial de Pedidos'}
           </h1>
           {activeSection === 'usuarios' && (
             <button onClick={fetchUsuarios} className="admin-btn admin-btn-primary">
               Cargar Usuarios
+            </button>
+          )}
+          {activeSection === 'reportes' && (
+            <button 
+              onClick={fetchReportes} 
+              className="admin-btn admin-btn-primary"
+              disabled={loadingReportes}
+            >
+              {loadingReportes ? 'Cargando...' : 'Actualizar Reportes'}
+            </button>
+          )}
+          {activeSection === 'pedidos' && (
+            <button 
+              onClick={fetchPedidos} 
+              className="admin-btn admin-btn-primary"
+              disabled={loadingPedidos}
+            >
+              {loadingPedidos ? 'Cargando...' : 'Cargar Pedidos'}
             </button>
           )}
         </div>
@@ -374,22 +457,87 @@ const AdminPage = () => {
           </div>
         )}
 
+        {/* Sección de Menú */}
+        {activeSection === 'menu' && (
+          <div className="admin-section">
+            <MenuManagement />
+          </div>
+        )}
+
+        {/* Sección de Caja */}
+        {activeSection === 'caja' && (
+          <div className="admin-caja-wrapper">
+            <CajaPage />
+          </div>
+        )}
+
+        {/* Sección de Cocina */}
+        {activeSection === 'cocina' && (
+          <div className="admin-cocina-wrapper">
+            <KitchenPage />
+          </div>
+        )}
+
+        {/* Sección de Mozo */}
+        {activeSection === 'mozo' && (
+          <div className="admin-mozo-wrapper">
+            <MozoPage />
+          </div>
+        )}
+
         {/* Sección de Reportes */}
         {activeSection === 'reportes' && (
           <div className="admin-section">
-            <h3>Reportes y Estadísticas</h3>
-            <div className="reports-grid">
-              <div className="report-card">
-                <h4>📊 Ventas del Día</h4>
-                <p>Próximamente...</p>
+            <h3>📊 Reportes y Estadísticas</h3>
+            {loadingReportes ? (
+              <div className="loading-spinner">Cargando estadísticas...</div>
+            ) : (
+              <div className="reports-grid">
+                <div className="report-card">
+                  <div className="report-icon">�</div>
+                  <h4>Ventas del Día</h4>
+                  <div className="report-value">{formatCurrency(reportes.ventasHoy)}</div>
+                  <p className="report-subtitle">Total facturado hoy</p>
+                </div>
+                <div className="report-card">
+                  <div className="report-icon">📋</div>
+                  <h4>Pedidos del Día</h4>
+                  <div className="report-value">{reportes.pedidosHoy}</div>
+                  <p className="report-subtitle">Órdenes completadas</p>
+                </div>
+                <div className="report-card">
+                  <div className="report-icon">🪑</div>
+                  <h4>Mesas Ocupadas</h4>
+                  <div className="report-value">{reportes.mesasOcupadas}</div>
+                  <p className="report-subtitle">Actualmente en uso</p>
+                </div>
+                <div className="report-card">
+                  <div className="report-icon">👥</div>
+                  <h4>Usuarios Activos</h4>
+                  <div className="report-value">{reportes.usuariosActivos}</div>
+                  <p className="report-subtitle">Total en el sistema</p>
+                </div>
               </div>
-              <div className="report-card">
-                <h4>👥 Usuarios Activos</h4>
-                <p>Total: {usuarios.length}</p>
-              </div>
-              <div className="report-card">
-                <h4>🍽️ Pedidos Completados</h4>
-                <p>Próximamente...</p>
+            )}
+            
+            <div className="reports-summary">
+              <h4>📈 Resumen del Día</h4>
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <span className="summary-label">Promedio por pedido:</span>
+                  <span className="summary-value">
+                    {reportes.pedidosHoy > 0 
+                      ? formatCurrency(reportes.ventasHoy / reportes.pedidosHoy)
+                      : formatCurrency(0)
+                    }
+                  </span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Estado del servicio:</span>
+                  <span className={`summary-value ${reportes.mesasOcupadas > 0 ? 'status-active' : 'status-quiet'}`}>
+                    {reportes.mesasOcupadas > 0 ? 'Activo' : 'Tranquilo'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -398,8 +546,101 @@ const AdminPage = () => {
         {/* Sección de Pedidos */}
         {activeSection === 'pedidos' && (
           <div className="admin-section">
-            <h3>Historial de Pedidos</h3>
-            <p>Funcionalidad en desarrollo...</p>
+            <h3>📋 Historial de Pedidos</h3>
+            
+            {loadingPedidos ? (
+              <div className="loading-spinner">Cargando pedidos...</div>
+            ) : pedidos.length === 0 ? (
+              <div className="empty-state">
+                <p>No hay pedidos registrados</p>
+                <button onClick={fetchPedidos} className="admin-btn admin-btn-primary">
+                  Cargar Pedidos
+                </button>
+              </div>
+            ) : (
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ID Pedido</th>
+                      <th>Mesa</th>
+                      <th>Mozo</th>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pedidos.map((pedido) => (
+                      <tr key={pedido._id}>
+                        <td>#{pedido._id.slice(-6)}</td>
+                        <td>Mesa {pedido.tableNumber || 'N/A'}</td>
+                        <td>{pedido.waiter?.name || 'N/A'}</td>
+                        <td>
+                          <div className="items-summary">
+                            {pedido.items?.slice(0, 2).map((item, idx) => (
+                              <span key={idx} className="item-chip">
+                                {item.quantity}x {item.name}
+                              </span>
+                            ))}
+                            {pedido.items?.length > 2 && (
+                              <span className="item-more">
+                                +{pedido.items.length - 2} más
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="amount-cell">
+                          {formatCurrency(pedido.total || 0)}
+                        </td>
+                        <td>
+                          <span className={`status-badge status-${pedido.status}`}>
+                            {pedido.status === 'pending' && '⏳ Pendiente'}
+                            {pedido.status === 'preparing' && '👨‍🍳 Preparando'}
+                            {pedido.status === 'ready' && '✅ Listo'}
+                            {pedido.status === 'delivered' && '🍽️ Entregado'}
+                            {pedido.status === 'paid' && '💰 Pagado'}
+                          </span>
+                        </td>
+                        <td className="date-cell">
+                          {formatDate(pedido.createdAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            {/* Estadísticas rápidas de pedidos */}
+            {pedidos.length > 0 && (
+              <div className="pedidos-stats">
+                <h4>📊 Estadísticas Rápidas</h4>
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="stat-value">{pedidos.length}</span>
+                    <span className="stat-label">Total Pedidos</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">
+                      {pedidos.filter(p => p.status === 'paid').length}
+                    </span>
+                    <span className="stat-label">Completados</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">
+                      {formatCurrency(
+                        pedidos
+                          .filter(p => p.status === 'paid')
+                          .reduce((sum, p) => sum + (p.total || 0), 0)
+                      )}
+                    </span>
+                    <span className="stat-label">Total Facturado</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

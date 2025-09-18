@@ -117,12 +117,47 @@ async function historialCajas(req, res) {
   }
 }
 
+// Obtener ventas del día para reportes
+async function getVentasHoy(req, res) {
+  try {
+    const db = getDB();
+    const cajas = db.collection('cajas');
+    
+    // Obtener fecha de hoy (inicio y fin del día)
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    
+    // Buscar todas las cajas del día
+    const cajasHoy = await cajas.find({
+      createdAt: { $gte: startOfDay, $lt: endOfDay }
+    }).toArray();
+    
+    // Calcular total de ventas sumando movimientos de ingreso
+    let totalVentas = 0;
+    for (let caja of cajasHoy) {
+      if (caja.movements) {
+        for (let movimiento of caja.movements) {
+          if (movimiento.type === 'ingreso') {
+            totalVentas += movimiento.amount || 0;
+          }
+        }
+      }
+    }
+    
+    res.json({ total: totalVentas });
+  } catch (err) {
+    res.status(500).json({ message: 'Error al obtener ventas del día', error: err.message });
+  }
+}
+
 module.exports = {
   abrirCaja,
   registrarMovimiento,
   cerrarCaja,
   estadoCaja,
   historialCajas,
-  confirmarCaja
-  ,limpiarCajasUsuario
+  confirmarCaja,
+  limpiarCajasUsuario,
+  getVentasHoy
 };

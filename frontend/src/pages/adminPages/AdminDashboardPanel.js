@@ -7,7 +7,7 @@ export default function AdminDashboardPanel({ activeSection, setActiveSection, u
     { 
       id: 'usuarios', 
       label: 'Usuarios', 
-      icon: '�', 
+      icon: '👥', 
       description: 'Gestionar usuarios del sistema' 
     },
     { 
@@ -15,6 +15,30 @@ export default function AdminDashboardPanel({ activeSection, setActiveSection, u
       label: 'Mesas', 
       icon: '🪑', 
       description: 'Administrar mesas del restaurante' 
+    },
+    { 
+      id: 'menu', 
+      label: 'Menú', 
+      icon: '🍽️', 
+      description: 'Gestionar productos del menú' 
+    },
+    { 
+      id: 'caja', 
+      label: 'Caja', 
+      icon: '💰', 
+      description: 'Sistema de caja y ventas' 
+    },
+    { 
+      id: 'cocina', 
+      label: 'Cocina', 
+      icon: '👨‍🍳', 
+      description: 'Dashboard de cocina' 
+    },
+    { 
+      id: 'mozo', 
+      label: 'Mozo', 
+      icon: '🧑‍🍽️', 
+      description: 'Sistema de mozos y pedidos' 
     },
     { 
       id: 'reportes', 

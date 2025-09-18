@@ -114,11 +114,29 @@ async function eliminarMesa(req, res) {
   }
 }
 
+// Obtener estadísticas de mesas ocupadas
+async function getMesasOcupadas(req, res) {
+  try {
+    const db = getDB();
+    const tables = db.collection('tables');
+    
+    // Contar mesas ocupadas
+    const mesasOcupadas = await tables.countDocuments({
+      status: 'occupied'
+    });
+    
+    res.json({ ocupadas: mesasOcupadas });
+  } catch (err) {
+    res.status(500).json({ message: 'Error al obtener mesas ocupadas', error: err.message });
+  }
+}
+
 module.exports = {
   crearMesa,
   listarMesas,
   actualizarMesa,
   eliminarMesa,
   asignarMesa,
-  liberarMesa
+  liberarMesa,
+  getMesasOcupadas
 };

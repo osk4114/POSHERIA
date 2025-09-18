@@ -8,6 +8,11 @@ export function connectSocket(userId) {
     socket = io(); // Asume mismo host/puerto que backend
   }
   socket.emit('register-session', { userId });
+  return socket;
+}
+
+export function getSocket() {
+  return socket;
 }
 
 export function onForceLogout(callback) {

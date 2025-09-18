@@ -20,5 +20,7 @@ router.post('/cerrar', authMiddleware, cajaController.cerrarCaja);
 router.get('/estado', authMiddleware, cajaController.estadoCaja);
 // Historial de cajas
 router.get('/historial', authMiddleware, cajaController.historialCajas);
+// Ventas del día para reportes
+router.get('/ventas-hoy', authMiddleware, cajaController.getVentasHoy);
 
 module.exports = router;
