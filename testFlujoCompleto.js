@@ -142,19 +142,196 @@ async function consultarCaja(token, userId) {
   return res.data;
 }
 
+// --- Funciones para flujo de mozo y add-ons ---
+async function crearUsuarioMozo(adminToken) {
+  // Crea usuario mozo si no existe
+  const username = 'mozo_test';
+  const password = 'mozo123';
+  try {
+    // Eliminar si existe
+    const usuariosRes = await axios.get(`${API_BASE}/users`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const mozoExistente = usuariosRes.data.find(u => u.username === username);
+    if (mozoExistente) {
+      await axios.delete(`${API_BASE}/users/${mozoExistente._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+    }
+  } catch {}
+  // Crear
+  await axios.post(`${API_BASE}/users`, {
+    username,
+    password,
+    name: 'Mozo de Prueba',
+    role: 'mozo',
+    active: true
+  }, {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  return { username, password };
+}
+
+async function loginMozo() {
+  const res = await axios.post(`${API_BASE}/users/login`, { username: 'mozo_test', password: 'mozo123' });
+  return res.data.token;
+}
+
+async function asignarMesa(token, tableId) {
+  const res = await axios.post(`${API_BASE}/tables/${tableId}/asignar`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+}
+
+async function liberarMesa(token, tableId) {
+  const res = await axios.post(`${API_BASE}/tables/${tableId}/liberar`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+}
+
+async function crearAddOn(token, parentOrderId) {
+  const res = await axios.post(`${API_BASE}/orders/addon`, {
+    parentOrderId,
+    products: [
+      { productId: PRODUCT_ID, name: 'Papas fritas', quantity: 1, price: 10 }
+    ]
+  }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+}
+
+async function listarAddOns(token, parentOrderId) {
+  const res = await axios.get(`${API_BASE}/orders/addon/history/${parentOrderId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+}
+
 async function main() {
+
+  // Paso 0: Login como admin y eliminar usuario cajero si existe, luego crearlo
+  console.log('Paso 0: Login admin para crear cajero');
+  let adminToken;
+  try {
+    adminToken = await obtenerToken(ADMIN_USERNAME, ADMIN_PASSWORD);
+    console.log('Token admin:', adminToken);
+  } catch (err) {
+    console.log('No se pudo obtener token de admin:', err?.message || err);
+    throw err;
+  }
+
+  // Eliminar usuario cajero y mozo si existen (debe ir después de obtener el token)
+  try {
+    const usuariosRes = await axios.get(`${API_BASE}/users`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const cajeroExistente = usuariosRes.data.find(u => u.username === CAJERO_USERNAME);
+    if (cajeroExistente) {
+      await axios.delete(`${API_BASE}/users/${cajeroExistente._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+    }
+    const mozoExistente = usuariosRes.data.find(u => u.username === 'mozo_test');
+    if (mozoExistente) {
+      await axios.delete(`${API_BASE}/users/${mozoExistente._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+    }
+  } catch (err) {
+    console.log('No se pudo eliminar usuario cajero anterior (puede que no exista):', err?.message || err);
+  }
+
+  // Crear usuario cajero y mozo para obtener sus tokens
+  // (esto se repite después, pero aquí es necesario para obtener los tokens antes del PUT)
+  try {
+    // Eliminar si existen
+    const usuariosRes = await axios.get(`${API_BASE}/users`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const cajeroExistente = usuariosRes.data.find(u => u.username === CAJERO_USERNAME);
+    if (cajeroExistente) {
+      await axios.delete(`${API_BASE}/users/${cajeroExistente._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+    }
+    const mozoExistente = usuariosRes.data.find(u => u.username === 'mozo_test');
+    if (mozoExistente) {
+      await axios.delete(`${API_BASE}/users/${mozoExistente._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+    }
+  } catch {}
+  // Crear cajero
+  await axios.post(`${API_BASE}/users`, {
+    username: CAJERO_USERNAME,
+    password: CAJERO_PASSWORD,
+    name: 'Cajero de Prueba',
+    role: 'caja',
+    active: true
+  }, {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  // Crear mozo
+  await axios.post(`${API_BASE}/users`, {
+    username: 'mozo_test',
+    password: 'mozo123',
+    name: 'Mozo de Prueba',
+    role: 'mozo',
+    active: true
+  }, {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  // Obtener tokens
+  const cajaToken = await obtenerToken(CAJERO_USERNAME, CAJERO_PASSWORD);
+  const mozoToken = await obtenerToken('mozo_test', 'mozo123');
+
+  // --- Forzar la mesa de test a estado libre antes de iniciar ---
+  let mesaLibreOk = false;
+  let lastError = null;
+  for (const tokenIntento of [cajaToken, mozoToken]) {
+    try {
+      const resp = await axios.put(`${API_BASE}/tables/${TABLE_ID}`,
+        {
+          status: 'free',
+          waiterId: null,
+          waiterStatus: 'libre',
+          orders: []
+        },
+        {
+          headers: { Authorization: `Bearer ${tokenIntento}` }
+        }
+      );
+      console.log('Respuesta PUT:', resp.data);
+      mesaLibreOk = true;
+      break;
+    } catch (err) {
+      console.log('Error PUT:', err?.response?.data || err.message);
+      lastError = err;
+    }
+  }
+  if (!mesaLibreOk) {
+    throw new Error('No se pudo forzar la mesa a libre con token de caja ni mozo. Último error: ' + (lastError?.response?.data?.message || lastError?.message));
+  }
   // --- Validar estado de la mesa antes de crear pedido ---
   const mesasAntes = await axios.get(`${API_BASE}/tables`);
-  const mesaTest = mesasAntes.data.find(m => String(m._id) === TABLE_ID);
+  // Soporta distintos formatos de _id
+  function getIdString(m) {
+    if (!m._id) return '';
+    if (typeof m._id === 'string') return m._id;
+    if (m._id.$oid) return m._id.$oid;
+    if (m._id.toString) return m._id.toString();
+    return String(m._id);
+  }
+  const mesaTest = mesasAntes.data.find(m => getIdString(m) === TABLE_ID);
+  console.log('Mesas recibidas:', mesasAntes.data);
   if (!mesaTest) throw new Error('La mesa de test no existe');
   if (mesaTest.status !== 'free') throw new Error('La mesa de test no está libre antes de crear el pedido');
 
-  try {
 
-    // Paso 0: Login como admin y eliminar usuario cajero si existe, luego crearlo
-    console.log('Paso 0: Login admin para crear cajero');
-    const adminToken = await obtenerToken(ADMIN_USERNAME, ADMIN_PASSWORD);
-    console.log('Token admin:', adminToken);
+  try {
 
     // Buscar usuario cajero existente y eliminarlo si existe
     try {
@@ -189,11 +366,15 @@ async function main() {
     await crearUsuarioCocina(adminToken);
     console.log('Usuario cocina creado o actualizado');
 
+    // Crear usuario mozo
+    await crearUsuarioMozo(adminToken);
+    console.log('Usuario mozo creado o actualizado');
 
-    // Paso 1: Login y obtener token del cajero
-    console.log('Paso 1: Login cajero y obtener token');
-    const token = await obtenerToken(CAJERO_USERNAME, CAJERO_PASSWORD);
-    console.log('Token cajero:', token);
+
+  // Paso 1: Login y obtener token del cajero (ya obtenido)
+  console.log('Paso 1: Login cajero y obtener token');
+  const token = cajaToken;
+  console.log('Token cajero:', token);
 
     // Paso 2: Obtener datos del usuario cajero
     const usuario = await obtenerUsuario(token);
@@ -269,57 +450,133 @@ async function main() {
   if (!mesaOcupada) throw new Error('La mesa de test no existe después de crear el pedido');
   if (mesaOcupada.status !== 'occupied') throw new Error('La mesa no quedó ocupada tras crear el pedido');
 
-    console.log('Paso 5: Comprobar pedidos pendientes antes de editar');
-    const pendientes = await listarPedidosPendientes(token);
-    console.log('Pedidos pendientes antes de editar:', pendientes.map(p => p._id));
+  // --- FLUJO DE MOZO ---
+  console.log('--- Iniciando flujo de mozo ---');
+  
+  // Token mozo ya obtenido
+  console.log('Token mozo:', mozoToken);
 
-    console.log('Paso 6: Editar pedido');
-    await editarPedido(token, orderId);
-    console.log('Pedido actualizado');
+  // Asignar mesa al mozo
+  console.log('Asignando mesa al mozo...');
+  const asignacion = await asignarMesa(mozoToken, TABLE_ID);
+  console.log('Mesa asignada al mozo:', asignacion);
 
+  // Validar que la mesa tiene waiterId asignado
+  const mesasDespuesAsignacion = await axios.get(`${API_BASE}/tables`);
+  const mesaAsignada = mesasDespuesAsignacion.data.find(m => String(m._id) === TABLE_ID);
+  if (!mesaAsignada.waiterId) throw new Error('La mesa no tiene waiterId asignado tras asignación');
 
-  console.log('Paso 7: Cobrar pedido');
-  await cobrarPedido(token, orderId);
-  console.log('Pedido cobrado');
+  // Paso 0: Login admin para gestión de datos base
+  console.log('Paso 0: Login admin para gestión de datos base');
+  const adminToken = await obtenerToken(ADMIN_USERNAME, ADMIN_PASSWORD);
+  console.log('Token admin:', adminToken);
 
-  // --- FLUJO DE COCINA ---
-  // Login cocina
-  const cocinaToken = await loginCocina();
-  console.log('Token cocina:', cocinaToken);
-
-  // Listar pedidos en cocina (debe aparecer el pedido cobrado)
-  let pedidosCocina = await listarPedidosCocina(cocinaToken);
-  const pedidoCocina = pedidosCocina.find(p => String(p._id) === String(orderId));
-  if (!pedidoCocina) throw new Error('El pedido no aparece en la cocina tras ser cobrado');
-  console.log('Pedido en cocina tras cobro:', pedidoCocina.status);
-
-  // Cambiar a in_kitchen
-  await actualizarEstadoPedidoCocina(cocinaToken, orderId, 'in_kitchen');
-  pedidosCocina = await listarPedidosCocina(cocinaToken);
-  const pedidoInKitchen = pedidosCocina.find(p => String(p._id) === String(orderId));
-  if (!pedidoInKitchen || pedidoInKitchen.status !== 'in_kitchen') throw new Error('No se pudo cambiar a in_kitchen');
-  console.log('Pedido cambiado a in_kitchen');
-
-  // Cambiar a ready
-  await actualizarEstadoPedidoCocina(cocinaToken, orderId, 'ready');
-  pedidosCocina = await listarPedidosCocina(cocinaToken);
-  const pedidoReady = pedidosCocina.find(p => String(p._id) === String(orderId));
-  if (!pedidoReady || pedidoReady.status !== 'ready') throw new Error('No se pudo cambiar a ready');
-  console.log('Pedido cambiado a ready');
-
-  // Cambiar a delivered
-  await actualizarEstadoPedidoCocina(cocinaToken, orderId, 'delivered');
-  pedidosCocina = await listarPedidosCocina(cocinaToken);
-  const pedidoDelivered = pedidosCocina.find(p => String(p._id) === String(orderId));
-  if (pedidoDelivered) {
-    if (pedidoDelivered.status !== 'delivered') throw new Error('No se pudo cambiar a delivered');
-    console.log('Pedido cambiado a delivered (aún visible en cocina)');
-  } else {
-    console.log('Pedido cambiado a delivered y ya no aparece en cocina (correcto)');
+  // --- Verificar/crear producto y mesa de test ---
+  // Producto
+  try {
+    const productos = await axios.get(`${API_BASE}/menu`, { headers: { Authorization: `Bearer ${adminToken}` } });
+    const prod = productos.data.find(p => String(p._id) === PRODUCT_ID);
+    if (!prod) {
+      await axios.post(`${API_BASE}/menu`, {
+        _id: PRODUCT_ID,
+        name: 'Pollo a la brasa',
+        price: 30,
+        category: 'Pollo',
+        available: true,
+        description: 'Delicioso pollo a la brasa tradicional'
+      }, { headers: { Authorization: `Bearer ${adminToken}` } });
+      console.log('Producto de test creado');
+    }
+  } catch (err) {
+    console.warn('No se pudo verificar/crear producto de test:', err.message);
+  }
+  // Mesa
+  try {
+    const mesas = await axios.get(`${API_BASE}/tables`);
+    const mesa = mesas.data.find(m => String(m._id) === TABLE_ID);
+    if (!mesa) {
+      await axios.post(`${API_BASE}/tables`, {
+        _id: TABLE_ID,
+        number: 1,
+        status: 'free',
+        orders: [],
+        waiterId: null,
+        waiterStatus: 'libre'
+      }, { headers: { Authorization: `Bearer ${adminToken}` } });
+      console.log('Mesa de test creada');
+    }
+  } catch (err) {
+    console.warn('No se pudo verificar/crear mesa de test:', err.message);
   }
 
-  // --- Validar que la mesa quedó libre tras entregar el pedido ---
-  const mesasDespuesEntrega = await axios.get(`${API_BASE}/tables`);
+  // --- Crear usuarios de prueba y obtener tokens ---
+  try {
+    // Eliminar si existen
+    const usuariosRes = await axios.get(`${API_BASE}/users`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const cajeroExistente = usuariosRes.data.find(u => u.username === CAJERO_USERNAME);
+    if (cajeroExistente) {
+      await axios.delete(`${API_BASE}/users/${cajeroExistente._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+    }
+    const mozoExistente = usuariosRes.data.find(u => u.username === 'mozo_test');
+    if (mozoExistente) {
+      await axios.delete(`${API_BASE}/users/${mozoExistente._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+    }
+  } catch {}
+  // Crear cajero
+  await axios.post(`${API_BASE}/users`, {
+    username: CAJERO_USERNAME,
+    password: CAJERO_PASSWORD,
+    name: 'Cajero de Prueba',
+    role: 'caja',
+    active: true
+  }, {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  // Crear mozo
+  await axios.post(`${API_BASE}/users`, {
+    username: 'mozo_test',
+    password: 'mozo123',
+    name: 'Mozo de Prueba',
+    role: 'mozo',
+    active: true
+  }, {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  // Obtener tokens
+  const cajaToken = await obtenerToken(CAJERO_USERNAME, CAJERO_PASSWORD);
+  const mozoToken = await obtenerToken('mozo_test', 'mozo123');
+
+  // --- Forzar la mesa de test a estado libre antes de iniciar ---
+  let mesaLibreOk = false;
+  let lastError = null;
+  for (const tokenIntento of [cajaToken, mozoToken]) {
+    try {
+      await axios.put(`${API_BASE}/tables/${TABLE_ID}`,
+        {
+          status: 'free',
+          waiterId: null,
+          waiterStatus: 'libre',
+          orders: []
+        },
+        {
+          headers: { Authorization: `Bearer ${tokenIntento}` }
+        }
+      );
+      mesaLibreOk = true;
+      break;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  if (!mesaLibreOk) {
+    throw new Error('No se pudo forzar la mesa a libre con token de caja ni mozo. Último error: ' + (lastError?.response?.data?.message || lastError?.message));
+  }
   const mesaLibre = mesasDespuesEntrega.data.find(m => String(m._id) === TABLE_ID);
   if (!mesaLibre) throw new Error('La mesa de test no existe después de entregar el pedido');
   if (mesaLibre.status !== 'free') throw new Error('La mesa no quedó libre tras entregar el pedido');

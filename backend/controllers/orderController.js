@@ -1,8 +1,73 @@
+// Consultar historial de añadidos (add-on) por mesa o pedido principal
+async function listAddOns(req, res) {
+  try {
+    const db = getDB();
+    const orders = db.collection('orders');
+    const { table, parentOrderId } = req.query;
+    const filter = { type: 'add-on' };
+    if (table) filter.table = new ObjectId(table);
+    if (parentOrderId) filter.parentOrderId = new ObjectId(parentOrderId);
+    const result = await orders.find(filter).toArray();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al consultar añadidos', error: err.message });
+  }
+}
+// Crear ticket de añadido (add-on)
+async function createAddOnOrder(req, res) {
+  try {
+    const db = getDB();
+    const orders = db.collection('orders');
+    const {
+      products, // [{ productId, name, quantity, price }]
+      table, // tableId
+      parentOrderId // pedido principal
+    } = req.body;
+    const userId = req.user._id; // mozo
+
+    // Validar mesa y pedido principal
+    if (!table || !parentOrderId) {
+      return res.status(400).json({ message: 'Faltan datos requeridos (table, parentOrderId)' });
+    }
+    const mesas = db.collection('tables');
+    const mesaObjId = new ObjectId(table);
+    const mesa = await mesas.findOne({ _id: mesaObjId });
+    if (!mesa) {
+      return res.status(400).json({ message: 'Mesa no encontrada.' });
+    }
+    // Validar que el mozo esté asignado a la mesa
+    if (!mesa.waiterId || String(mesa.waiterId) !== String(userId)) {
+      return res.status(403).json({ message: 'No tienes asignada esta mesa.' });
+    }
+    // Validar pedido principal
+    const pedidoPrincipal = await orders.findOne({ _id: new ObjectId(parentOrderId), table: mesaObjId });
+    if (!pedidoPrincipal) {
+      return res.status(400).json({ message: 'Pedido principal no encontrado para esta mesa.' });
+    }
+
+    const order = {
+      products,
+      table: mesaObjId,
+      status: 'pending',
+      type: 'add-on',
+      parentOrderId: new ObjectId(parentOrderId),
+      createdBy: new ObjectId(userId),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const result = await orders.insertOne(order);
+    res.status(201).json({ message: 'Add-on order created', orderId: result.insertedId });
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating add-on order', error: err.message });
+  }
+}
 module.exports = {
   createOrder,
   updateOrder,
   listOrders,
   payOrder,
+  createAddOnOrder,
+  listAddOns,
 };
 // controllers/orderController.js
 const { getDB } = require('../config/mongo');

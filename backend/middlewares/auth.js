@@ -1,5 +1,6 @@
 
 const { verifyToken } = require('../services/jwtService');
+const { isTokenValid } = require('../services/tokenStore');
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -10,6 +11,9 @@ function authMiddleware(req, res, next) {
   const user = verifyToken(token);
   if (!user) {
     return res.status(403).json({ message: 'Token inválido o expirado' });
+  }
+  if (!isTokenValid(token)) {
+    return res.status(401).json({ message: 'Token no autorizado (no está en la whitelist)'});
   }
   req.user = user;
   next();

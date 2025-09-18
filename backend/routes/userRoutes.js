@@ -7,6 +7,8 @@ const { authMiddleware, adminOnly } = require('../middlewares/auth');
 
 // Login público
 router.post('/login', userController.login);
+// Logout (protegido)
+router.post('/logout', authMiddleware, userController.logout);
 // Obtener datos del usuario autenticado
 router.get('/me', authMiddleware, userController.getMe);
 

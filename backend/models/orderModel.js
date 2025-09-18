@@ -9,8 +9,9 @@ class Order {
     products = [], // [{ productId, name, quantity, price }]
     table = null, // ObjectId or null if take away
     status = 'pending', // pending | paid | in_kitchen | ready | delivered | cancelled
-    type = 'dine-in', // dine-in | take-away
-    createdBy, // userId
+    type = 'dine-in', // dine-in | take-away | add-on
+    parentOrderId = null, // Si es un añadido, referencia al pedido principal
+    createdBy, // userId (mozo que crea el añadido)
     createdAt = new Date(),
     updatedAt = new Date()
   }) {
@@ -19,6 +20,7 @@ class Order {
     this.table = table ? new ObjectId(table) : null;
     this.status = status;
     this.type = type;
+    this.parentOrderId = parentOrderId ? new ObjectId(parentOrderId) : null;
     this.createdBy = createdBy ? new ObjectId(createdBy) : undefined;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;

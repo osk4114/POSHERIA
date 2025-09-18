@@ -9,6 +9,8 @@ class Table {
     number,
     status = 'free', // free | occupied
     orders = [], // Array of order ObjectIds
+    waiterId = null, // ObjectId del mozo asignado
+    waiterStatus = 'libre', // libre | atendiendo
     createdAt = new Date(),
     updatedAt = new Date()
   }) {
@@ -16,6 +18,8 @@ class Table {
     this.number = number;
     this.status = status;
     this.orders = orders.map(id => new ObjectId(id));
+    this.waiterId = waiterId ? new ObjectId(waiterId) : null;
+    this.waiterStatus = waiterStatus;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }

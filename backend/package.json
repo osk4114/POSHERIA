@@ -11,7 +11,9 @@
     "express": "*",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.19.0",
-    "react-scripts": "*"
+    "mongoose": "^8.18.1",
+    "react-scripts": "*",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

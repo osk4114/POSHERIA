@@ -6,8 +6,12 @@ const orderController = require('../controllers/orderController');
 
 // All routes require authentication
 router.post('/', authMiddleware, orderController.createOrder);
+// Endpoint para crear ticket de añadido (add-on) (solo mozo)
+router.post('/addon', authMiddleware, orderController.createAddOnOrder);
 router.put('/:id', authMiddleware, orderController.updateOrder);
 router.get('/', authMiddleware, orderController.listOrders);
+// Endpoint para consultar historial de añadidos (add-on) por mesa o pedido principal
+router.get('/addon', authMiddleware, orderController.listAddOns);
 router.post('/:id/pay', authMiddleware, orderController.payOrder);
 
 module.exports = router;

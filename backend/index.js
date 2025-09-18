@@ -41,11 +41,17 @@ app.get('*', (req, res) => {
 
 
 // Probar conexión a MongoDB antes de iniciar el servidor
+
+const { setupSocket } = require('./socket');
+
 connectDB()
   .then(() => {
-    app.listen(config.port, () => {
+    const server = app.listen(config.port, () => {
       console.log(`Servidor backend escuchando en http://localhost:${config.port}`);
     });
+    // Inicializar socket.io y exponer globalmente para forceLogoutUser
+    const io = setupSocket(server);
+    global._io = io;
   })
   .catch((err) => {
     console.error('Error al conectar a MongoDB:', err);

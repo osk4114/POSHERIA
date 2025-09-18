@@ -66,20 +66,39 @@ async function eliminarUsuario(req, res) {
 }
 
 const { generateToken } = require('../services/jwtService');
+const { addToken, removeToken } = require('../services/tokenStore');
+const { forceLogoutUser } = require('../socket');
 
 // Login de usuario
 async function login(req, res) {
   try {
-  const db = getDB();
-  const { username, password } = req.body;
-  const user = await db.collection('users').findOne({ username });
-  if (!user) return res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
+    const db = getDB();
+    const { username, password } = req.body;
+    const user = await db.collection('users').findOne({ username });
+    if (!user) return res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
   const token = generateToken({ _id: user._id, username: user.username, role: user.role });
+  // Forzar logout en tiempo real de la sesión anterior (si existe)
+  forceLogoutUser(String(user._id));
+  addToken(token, String(user._id)); // Agregar token único por usuario
   res.json({ token });
   } catch (err) {
     res.status(500).json({ message: 'Error en login', error: err.message });
+  }
+}
+
+// Logout de usuario (elimina el token de la whitelist)
+async function logout(req, res) {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      removeToken(token);
+    }
+    res.json({ message: 'Sesión cerrada' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error al cerrar sesión', error: err.message });
   }
 }
 
@@ -101,5 +120,6 @@ module.exports = {
   actualizarUsuario,
   eliminarUsuario,
   login,
+  logout,
   getMe
 };
