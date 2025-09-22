@@ -5,6 +5,7 @@ import MenuManagement from '../../components/MenuManagement';
 import KitchenPage from '../kitchenPages/KitchenPage';
 import MozoPage from '../mozoPages/MozoPage';
 import './AdminPage.css';
+import './AdminCajaStyles.css';
 import api from '../../api';
 import { setSession, getUser, logout } from '../../auth';
 import { connectSocket, onForceLogout } from '../../socket';
@@ -215,26 +216,65 @@ const AdminPage = () => {
     }
   };
 
+  // Función para recargar todos los datos de caja
+  const loadCajaData = async () => {
+    setLoadingCajas(true);
+    setErrorCaja(null);
+    try {
+      await Promise.all([
+        fetchCajasAbiertas(),
+        fetchHistorialCajas(),
+        fetchCajeros()
+      ]);
+    } catch (err) {
+      console.error('Error al cargar datos de caja:', err);
+      setErrorCaja('Error al actualizar los datos');
+    } finally {
+      setLoadingCajas(false);
+    }
+  };
+
   const abrirNuevaCaja = async (e) => {
     e.preventDefault();
     setErrorCaja(null);
+    
     if (!nuevaCaja.assignedTo || !nuevaCaja.initialAmount) {
       setErrorCaja('Debe seleccionar un cajero y especificar el monto inicial');
       return;
     }
+    
+    setLoadingCajas(true);
+    
     try {
+      console.log('🔓 [ADMIN CAJA] Abriendo nueva caja:', nuevaCaja);
       await api.post('/api/caja/abrir', {
         assignedTo: nuevaCaja.assignedTo,
         initialAmount: parseFloat(nuevaCaja.initialAmount)
       });
+      
+      // Limpiar formulario
+      const cajeroNombre = cajeros.find(c => c._id === nuevaCaja.assignedTo)?.name || 'Cajero';
+      const montoInicial = parseFloat(nuevaCaja.initialAmount);
       setNuevaCaja({ assignedTo: '', initialAmount: '' });
       
+      // Mensaje de éxito
+      const successMsg = `✅ Caja abierta para ${cajeroNombre} - Monto inicial: ${formatCurrency(montoInicial)}`;
+      setStatusMsg(successMsg);
+      setTimeout(() => setStatusMsg(null), 5000);
+      
       // Recarga inmediata después de abrir caja (encapsulación)
-      console.log('🔄 [ENCAPSULACIÓN ADMIN] Recarga inmediata después de abrir caja');
-      fetchCajasAbiertas();
-      fetchHistorialCajas();
+      console.log('🔄 [ADMIN CAJA] Recarga inmediata después de abrir caja');
+      await Promise.all([
+        fetchCajasAbiertas(),
+        fetchHistorialCajas()
+      ]);
+      
     } catch (err) {
+      console.error('❌ [ADMIN CAJA] Error al abrir caja:', err);
       setErrorCaja(err?.response?.data?.message || 'Error al abrir caja');
+      setTimeout(() => setErrorCaja(null), 5000);
+    } finally {
+      setLoadingCajas(false);
     }
   };
 
@@ -245,44 +285,94 @@ const AdminPage = () => {
       return;
     }
     
+    // Confirmación adicional del usuario
+    if (!window.confirm(`¿Estás seguro de cerrar la caja con un total de ${formatCurrency(totalAmount)}?`)) {
+      return;
+    }
+    
+    setLoadingCajas(true);
+    
     try {
-      console.log('🔒 Cerrando caja:', { cajaId, finalAmount: totalAmount });
+      console.log('🔒 [ADMIN CAJA] Cerrando caja:', { cajaId, finalAmount: totalAmount });
       await api.post('/api/caja/cerrar', {
         cajaId: cajaId,
         finalAmount: totalAmount
       });
-      console.log('✅ Caja cerrada exitosamente');
+      console.log('✅ [ADMIN CAJA] Caja cerrada exitosamente');
       
       // Limpieza automática: remover la caja cerrada del estado inmediatamente
       setCajasAbiertas(prevCajas => prevCajas.filter(caja => caja._id !== cajaId));
       
+      // Mensaje de éxito
+      const successMsg = `✅ Caja cerrada exitosamente - Total final: ${formatCurrency(totalAmount)}`;
+      setStatusMsg(successMsg);
+      setTimeout(() => setStatusMsg(null), 5000);
+      
       // Recarga inmediata después de cerrar caja (encapsulación)
-      console.log('🔄 [ENCAPSULACIÓN ADMIN] Recarga inmediata después de cerrar caja');
-      fetchCajasAbiertas();
-      fetchHistorialCajas();
+      console.log('🔄 [ADMIN CAJA] Recarga inmediata después de cerrar caja');
+      await Promise.all([
+        fetchCajasAbiertas(),
+        fetchHistorialCajas()
+      ]);
+      
     } catch (err) {
-      console.error('❌ Error al cerrar caja:', err);
+      console.error('❌ [ADMIN CAJA] Error al cerrar caja:', err);
       
       // Si la caja ya no existe (404), limpiarla automáticamente del estado
       if (err.response?.status === 404) {
-        console.log('🧹 Caja ya no existe, limpiando del estado');
+        console.log('🧹 [ADMIN CAJA] Caja ya no existe, limpiando del estado');
         setCajasAbiertas(prevCajas => prevCajas.filter(caja => caja._id !== cajaId));
         setErrorCaja('La caja ya fue cerrada o no existe');
       } else {
         setErrorCaja(err?.response?.data?.message || 'Error al cerrar caja');
       }
+      setTimeout(() => setErrorCaja(null), 5000);
+    } finally {
+      setLoadingCajas(false);
     }
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-AR', {
+    return new Intl.NumberFormat('es-CO', {
       style: 'currency',
-      currency: 'ARS'
-    }).format(amount);
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(amount || 0);
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString('es-AR');
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('es-CO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('es-CO', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return 'N/A';
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Hace menos de 1h';
+    if (diffInHours < 24) return `Hace ${diffInHours}h`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `Hace ${diffInDays}d`;
   };
 
   const crearUsuario = async (e) => {
@@ -704,150 +794,379 @@ const AdminPage = () => {
 
         {/* Sección de Menú */}
         {activeSection === 'menu' && (
-          <div className="admin-section compact-view">
+          <div className="admin-section menu-dashboard">
             <div className="section-header">
               <h3 className="section-title">🍽️ Gestión de Menú</h3>
+              <div className="menu-quick-actions">
+                <button 
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => window.open('/menu-display', '_blank')}
+                >
+                  📺 Ver Menú en Pantalla
+                </button>
+              </div>
             </div>
+            
+            {/* Dashboard de estadísticas del menú */}
+            <div className="menu-stats-grid">
+              <div className="stat-card-compact menu-total">
+                <div className="stat-icon">🍽️</div>
+                <div className="stat-info">
+                  <span className="stat-number">45</span>
+                  <span className="stat-label">Total Productos</span>
+                </div>
+              </div>
+              <div className="stat-card-compact menu-active">
+                <div className="stat-icon">✅</div>
+                <div className="stat-info">
+                  <span className="stat-number">42</span>
+                  <span className="stat-label">Disponibles</span>
+                </div>
+              </div>
+              <div className="stat-card-compact menu-categories">
+                <div className="stat-icon">📁</div>
+                <div className="stat-info">
+                  <span className="stat-number">5</span>
+                  <span className="stat-label">Categorías</span>
+                </div>
+              </div>
+              <div className="stat-card-compact menu-revenue">
+                <div className="stat-icon">💰</div>
+                <div className="stat-info">
+                  <span className="stat-number">S/. 1,245</span>
+                  <span className="stat-label">Ventas Hoy</span>
+                </div>
+              </div>
+            </div>
+
             <MenuManagement />
           </div>
         )}
 
         {/* Sección de Caja */}
         {activeSection === 'caja' && (
-          <div className="admin-section compact-view">
+          <div className="admin-section caja-dashboard">
             <div className="section-header">
               <h3 className="section-title">💰 Sistema de Caja - Administración</h3>
+              <button 
+                onClick={loadCajaData} 
+                className="refresh-btn"
+                disabled={loadingCajas}
+              >
+                {loadingCajas ? '🔄' : '🔄'} Actualizar
+              </button>
             </div>
             
             {errorCaja && (
-              <div className="error-message">
-                {errorCaja}
+              <div className="error-banner">
+                ❌ {errorCaja}
               </div>
             )}
 
-            {loadingCajas && (
-              <div className="loading-message">
-                Cargando información de cajas...
+            {/* Dashboard de Estadísticas */}
+            <div className="caja-stats-grid">
+              <div className="stat-card primary">
+                <div className="stat-icon">🔓</div>
+                <div className="stat-content">
+                  <h4>{cajasAbiertas.length}</h4>
+                  <p>Cajas Abiertas</p>
+                </div>
               </div>
-            )}
-
-            {/* Formulario para abrir nueva caja */}
-            <div className="caja-admin-section">
-              <h4>🔓 Abrir Nueva Caja</h4>
-              <form onSubmit={abrirNuevaCaja} className="nueva-caja-form">
-                <div className="form-group">
-                  <label>Asignar a Cajero:</label>
-                  <select 
-                    value={nuevaCaja.assignedTo} 
-                    onChange={(e) => setNuevaCaja({...nuevaCaja, assignedTo: e.target.value})}
-                    required
-                  >
-                    <option value="">Seleccionar cajero...</option>
-                    {cajeros.map(cajero => (
-                      <option key={cajero._id} value={cajero._id}>
-                        {cajero.name} ({cajero.username})
-                      </option>
-                    ))}
-                  </select>
+              <div className="stat-card success">
+                <div className="stat-icon">✅</div>
+                <div className="stat-content">
+                  <h4>{cajasAbiertas.filter(c => c.confirmed).length}</h4>
+                  <p>Confirmadas</p>
                 </div>
-                <div className="form-group">
-                  <label>Monto Inicial:</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    min="0"
-                    value={nuevaCaja.initialAmount}
-                    onChange={(e) => setNuevaCaja({...nuevaCaja, initialAmount: e.target.value})}
-                    placeholder="Ej: 10000"
-                    required
-                  />
+              </div>
+              <div className="stat-card warning">
+                <div className="stat-icon">⏳</div>
+                <div className="stat-content">
+                  <h4>{cajasAbiertas.filter(c => !c.confirmed).length}</h4>
+                  <p>Pendientes</p>
                 </div>
-                <button type="submit" className="btn-primary">
-                  Abrir Caja
-                </button>
-              </form>
+              </div>
+              <div className="stat-card info">
+                <div className="stat-icon">💰</div>
+                <div className="stat-content">
+                  <h4>{formatCurrency(cajasAbiertas.reduce((total, caja) => total + (caja.totalAmount || caja.initialAmount), 0))}</h4>
+                  <p>Total en Cajas</p>
+                </div>
+              </div>
             </div>
 
-            {/* Cajas Abiertas */}
-            <div className="caja-admin-section">
-              <h4>📖 Cajas Abiertas</h4>
-              {cajasAbiertas.length === 0 ? (
-                <p className="no-data">No hay cajas abiertas actualmente</p>
-              ) : (
-                <div className="cajas-grid">
-                  {cajasAbiertas.map((caja) => (
-                    <div key={caja._id} className="caja-card">
-                      <div className="caja-header">
-                        <span className="caja-id">#{caja._id.slice(-6)}</span>
-                        <span className={`status-badge ${caja.confirmed ? 'confirmed' : 'pending'}`}>
-                          {caja.confirmed ? 'Confirmada' : 'Pendiente'}
-                        </span>
-                      </div>
-                      <div className="caja-info">
-                        <p><strong>Cajero:</strong> {caja.assignedTo?.name || 'No asignado'}</p>
-                        <p><strong>Monto Inicial:</strong> {formatCurrency(caja.initialAmount)}</p>
-                        <p><strong>Total Actual:</strong> {formatCurrency(caja.totalAmount || caja.initialAmount)}</p>
-                        <p><strong>Movimientos:</strong> {caja.movements?.length || 0}</p>
-                        <p><strong>Abierta:</strong> {formatDate(caja.openedAt)}</p>
-                      </div>
-                      <div className="caja-actions">
-                        <button 
-                          onClick={() => cerrarCaja(caja._id, caja.totalAmount || caja.initialAmount)}
-                          className="btn-danger btn-small"
+            {/* Panel de Control Principal */}
+            <div className="caja-main-panel">
+              
+              {/* Formulario Abrir Nueva Caja */}
+              <div className="panel-section nueva-caja-panel">
+                <div className="panel-header">
+                  <h4>🔓 Abrir Nueva Caja</h4>
+                </div>
+                <div className="panel-content">
+                  <form onSubmit={abrirNuevaCaja} className="nueva-caja-form-modern">
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label>👤 Asignar a Cajero</label>
+                        <select 
+                          value={nuevaCaja.assignedTo} 
+                          onChange={(e) => setNuevaCaja({...nuevaCaja, assignedTo: e.target.value})}
+                          required
+                          className="form-select"
                         >
-                          Cerrar Caja
+                          <option value="">Seleccionar cajero...</option>
+                          {cajeros.map(cajero => (
+                            <option key={cajero._id} value={cajero._id}>
+                              👤 {cajero.name} ({cajero.username})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-field">
+                        <label>💵 Monto Inicial</label>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          min="0"
+                          value={nuevaCaja.initialAmount}
+                          onChange={(e) => setNuevaCaja({...nuevaCaja, initialAmount: e.target.value})}
+                          placeholder="Ej: 10000"
+                          required
+                          className="form-input"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <button type="submit" className="btn-abrir-caja" disabled={loadingCajas}>
+                          {loadingCajas ? '⏳ Abriendo...' : '🔓 Abrir Caja'}
                         </button>
                       </div>
                     </div>
-                  ))}
+                  </form>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Historial de Cajas */}
-            <div className="caja-admin-section">
-              <h4>📚 Historial de Cajas</h4>
-              {historialCajas.length === 0 ? (
-                <p className="no-data">No hay historial de cajas</p>
-              ) : (
-                <div className="historial-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Cajero</th>
-                        <th>Monto Inicial</th>
-                        <th>Total Final</th>
-                        <th>Movimientos</th>
-                        <th>Estado</th>
-                        <th>Fechas</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {historialCajas.slice(0, 10).map((caja) => (
-                        <tr key={caja._id}>
-                          <td>#{caja._id.slice(-6)}</td>
-                          <td>{caja.assignedTo?.name || 'N/A'}</td>
-                          <td>{formatCurrency(caja.initialAmount)}</td>
-                          <td>{formatCurrency(caja.totalAmount || caja.initialAmount)}</td>
-                          <td>{caja.movements?.length || 0}</td>
-                          <td>
-                            <span className={`status-badge ${caja.status}`}>
-                              {caja.status === 'open' ? 'Abierta' : 'Cerrada'}
-                            </span>
-                          </td>
-                          <td>
-                            <small>
-                              Abierta: {formatDate(caja.openedAt)}<br/>
-                              {caja.closedAt && `Cerrada: ${formatDate(caja.closedAt)}`}
-                            </small>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Cajas Abiertas */}
+              <div className="panel-section cajas-abiertas-panel">
+                <div className="panel-header">
+                  <h4>📖 Cajas Abiertas Actualmente</h4>
+                  <span className="badge">{cajasAbiertas.length}</span>
                 </div>
-              )}
+                <div className="panel-content">
+                  {cajasAbiertas.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">📭</div>
+                      <p>No hay cajas abiertas actualmente</p>
+                    </div>
+                  ) : (
+                    <div className="cajas-table-wrapper">
+                      <table className="cajas-table modern">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>👤 Cajero</th>
+                            <th>💰 Montos</th>
+                            <th>📊 Actividad</th>
+                            <th>⏰ Estado</th>
+                            <th>🛠️ Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cajasAbiertas.map((caja) => (
+                            <tr key={caja._id} className={`caja-row ${caja.confirmed ? 'confirmed' : 'pending'}`}>
+                              <td>
+                                <span className="caja-id-badge">#{caja._id.slice(-6)}</span>
+                              </td>
+                              <td>
+                                <div className="cajero-info">
+                                  <span className="cajero-name">{caja.assignedTo?.name || 'No asignado'}</span>
+                                  <small className="cajero-username">@{caja.assignedTo?.username}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="montos-info">
+                                  <div className="monto-inicial">Inicial: {formatCurrency(caja.initialAmount)}</div>
+                                  <div className="monto-actual">Actual: {formatCurrency(caja.totalAmount || caja.initialAmount)}</div>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="actividad-info">
+                                  <span className="movimientos-count">{caja.movements?.length || 0} movimientos</span>
+                                  <small className="tiempo-abierta">Abierta: {formatTimeAgo(caja.openedAt)}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`status-pill ${caja.confirmed ? 'confirmed' : 'pending'}`}>
+                                  {caja.confirmed ? '✅ Confirmada' : '⏳ Pendiente'}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="action-buttons">
+                                  <button 
+                                    onClick={() => cerrarCaja(caja._id, caja.totalAmount || caja.initialAmount)}
+                                    className="btn-cerrar-caja"
+                                    disabled={loadingCajas}
+                                    title="Cerrar esta caja"
+                                  >
+                                    {loadingCajas ? '⏳' : '🔒'}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Historial de Cajas Mejorado */}
+              <div className="panel-section historial-panel">
+                <div className="panel-header">
+                  <h4>📚 Historial de Cajas</h4>
+                  <div className="historial-controls">
+                    <input 
+                      type="text" 
+                      placeholder="🔍 Buscar por cajero..." 
+                      className="search-input"
+                    />
+                    <select className="filter-select">
+                      <option value="">Todos los estados</option>
+                      <option value="open">Abiertas</option>
+                      <option value="closed">Cerradas</option>
+                      <option value="declined">Declinadas</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="panel-content">
+                  {historialCajas.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">📝</div>
+                      <p>No hay historial de cajas disponible</p>
+                    </div>
+                  ) : (
+                    <div className="historial-table-wrapper">
+                      <table className="historial-table modern">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>👤 Cajero</th>
+                            <th>💰 Montos</th>
+                            <th>📊 Actividad</th>
+                            <th>📅 Fechas</th>
+                            <th>🏷️ Estado</th>
+                            <th>ℹ️ Detalles</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historialCajas.slice(0, 20).map((caja) => (
+                            <tr key={caja._id} className={`historial-row ${caja.status}`}>
+                              <td>
+                                <span className="caja-id-badge">#{caja._id.slice(-6)}</span>
+                              </td>
+                              <td>
+                                <div className="cajero-info">
+                                  <span className="cajero-name">{caja.assignedTo?.name || 'Sin asignar'}</span>
+                                  <small className="cajero-username">@{caja.assignedTo?.username || 'N/A'}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="montos-historial">
+                                  <div className="monto-row">
+                                    <span className="monto-label">Inicial:</span>
+                                    <span className="monto-value">{formatCurrency(caja.initialAmount)}</span>
+                                  </div>
+                                  {caja.status !== 'declined' && (
+                                    <div className="monto-row">
+                                      <span className="monto-label">Final:</span>
+                                      <span className="monto-value">{formatCurrency(caja.totalAmount || caja.initialAmount)}</span>
+                                    </div>
+                                  )}
+                                  {caja.status === 'declined' && (
+                                    <div className="monto-row declined">
+                                      <span className="monto-label">Estado:</span>
+                                      <span className="monto-value">❌ No procesado</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <div className="actividad-historial">
+                                  <span className="movimientos-badge">{caja.movements?.length || 0} movimientos</span>
+                                  {caja.confirmed && (
+                                    <small className="confirmado-badge">✅ Confirmada</small>
+                                  )}
+                                  {caja.status === 'declined' && (
+                                    <small className="declinado-badge">❌ Declinada</small>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <div className="fechas-info">
+                                  <div className="fecha-row">
+                                    <span className="fecha-label">Abierta:</span>
+                                    <span className="fecha-value">{formatDateTime(caja.createdAt)}</span>
+                                  </div>
+                                  {caja.closedAt && (
+                                    <div className="fecha-row">
+                                      <span className="fecha-label">Cerrada:</span>
+                                      <span className="fecha-value">{formatDateTime(caja.closedAt)}</span>
+                                    </div>
+                                  )}
+                                  {caja.declinedAt && (
+                                    <div className="fecha-row declined">
+                                      <span className="fecha-label">Declinada:</span>
+                                      <span className="fecha-value">{formatDateTime(caja.declinedAt)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`status-pill ${caja.status}`}>
+                                  {caja.status === 'open' ? '🔓 Abierta' : 
+                                   caja.status === 'closed' ? '🔒 Cerrada' : 
+                                   caja.status === 'declined' ? '❌ Declinada' : caja.status}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="detalles-info">
+                                  {caja.status === 'declined' && caja.declineReason && (
+                                    <div className="decline-details">
+                                      <span className="detail-label">Motivo:</span>
+                                      <span className="detail-value" title={caja.declineReason}>
+                                        {caja.declineReason.length > 20 
+                                          ? `${caja.declineReason.substring(0, 20)}...` 
+                                          : caja.declineReason}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {caja.status === 'closed' && (
+                                    <div className="close-details">
+                                      <span className="detail-label">Duración:</span>
+                                      <span className="detail-value">
+                                        {caja.closedAt && caja.createdAt 
+                                          ? `${Math.round((new Date(caja.closedAt) - new Date(caja.createdAt)) / (1000 * 60 * 60))}h`
+                                          : 'N/A'}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {caja.status === 'open' && (
+                                    <div className="open-details">
+                                      <span className="detail-label">Activa desde:</span>
+                                      <span className="detail-value">{formatTimeAgo(caja.createdAt)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
             </div>
           </div>
         )}

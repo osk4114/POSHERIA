@@ -2,9 +2,11 @@ import axios from 'axios';
 import { logout } from './auth';
 
 // Crea una instancia de axios que agrega el token automáticamente si existe
-const api = axios.create();
+const api = axios.create({
+  baseURL: 'http://localhost:3000' // URL del backend
+});
 
-api.interceptors.request.use(
+api.interceptors.request.use(     
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -18,7 +20,7 @@ api.interceptors.request.use(
 // Interceptor de respuesta para forzar logout si el token es inválido
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ api.js: Respuesta exitosa:', response.config.method.toUpperCase(), response.config.url);
+    // Solo logear errores, no todas las respuestas exitosas para evitar spam
     return response;
   },
   (error) => {

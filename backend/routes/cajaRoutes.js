@@ -13,6 +13,8 @@ router.delete('/limpiar', authMiddleware, cajaAccess, cajaController.limpiarCaja
 router.post('/abrir', authMiddleware, cajaAccess, cajaController.abrirCaja);
 // Confirmar monto inicial de caja (cajero)
 router.post('/confirmar', authMiddleware, cajaAccess, cajaController.confirmarCaja);
+// Declinar caja asignada (cajero)
+router.post('/declinar', authMiddleware, cajaAccess, cajaController.declinarCaja);
 // Registrar movimiento
 router.post('/movimiento', authMiddleware, cajaAccess, cajaController.registrarMovimiento);
 // Cerrar caja

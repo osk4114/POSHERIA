@@ -13,7 +13,6 @@ const CajaPage = () => {
   
   // Estados para Caja
   const [cajaInfo, setCajaInfo] = useState(null);
-  const [confirmandoMonto, setConfirmandoMonto] = useState(false);
   const [montoConfirmacion, setMontoConfirmacion] = useState('');
   const [nuevoMovimiento, setNuevoMovimiento] = useState({
     type: 'ingreso',
@@ -21,6 +20,12 @@ const CajaPage = () => {
     description: ''
   });
   const [loading, setLoading] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [movimientoLoading, setMovimientoLoading] = useState(false);
+  const [confirmacionLoading, setConfirmacionLoading] = useState(false);
+  const [declinarLoading, setDeclinarLoading] = useState(false);
+  const [mostrarDeclinar, setMostrarDeclinar] = useState(false);
+  const [razonDeclinar, setRazonDeclinar] = useState('');
   
   // Estados para pedidos y ventas
   const [pedidos, setPedidos] = useState([]);
@@ -61,6 +66,71 @@ const CajaPage = () => {
             prevPedidos.map(p => p._id === order._id ? order : p)
           );
         });
+        
+        // Escuchar actualizaciones de mesas en tiempo real
+        socket.on('tableUpdated', (data) => {
+          console.log('🪑 [FRONTEND] CajaPage: Mesa actualizada:', data);
+          
+          if (data.action === 'created') {
+            setMesas(prevMesas => [...prevMesas, data.table]);
+          } else if (data.action === 'updated') {
+            setMesas(prevMesas => 
+              prevMesas.map(m => m._id === data.table._id ? data.table : m)
+            );
+          } else if (data.action === 'deleted') {
+            setMesas(prevMesas => 
+              prevMesas.filter(m => m._id !== data.tableId)
+            );
+          }
+          
+          // Mensaje informativo para el usuario
+          if (data.action === 'liberated') {
+            setSuccess('Mesa liberada - disponible para nuevos pedidos');
+            setTimeout(() => setSuccess(null), 3000);
+          }
+        });
+        
+        // Escuchar actualizaciones de caja en tiempo real
+        socket.on('cajaUpdated', (data) => {
+          console.log('💰 [FRONTEND] CajaPage: Caja actualizada:', data);
+          
+          if (data.action === 'opened') {
+            // Si es la caja del usuario actual, recargar datos
+            if (data.caja && data.caja.assignedTo === currentUser._id) {
+              fetchCajaInfo();
+              setSuccess('Nueva caja abierta - actualizando datos...');
+              setTimeout(() => setSuccess(null), 3000);
+            }
+          } else if (data.action === 'closed') {
+            // Si es la caja del usuario actual, recargar datos
+            if (data.caja && data.caja.assignedTo === currentUser._id) {
+              fetchCajaInfo();
+              setError('Tu caja ha sido cerrada por un administrador');
+              setTimeout(() => setError(null), 5000);
+            }
+          } else if (data.action === 'confirmed') {
+            // Si es la caja del usuario actual, recargar datos
+            if (data.caja && data.caja.assignedTo === currentUser._id) {
+              fetchCajaInfo();
+              setSuccess('Caja confirmada y lista para usar');
+              setTimeout(() => setSuccess(null), 3000);
+            }
+          } else if (data.action === 'declined') {
+            // Si es la caja del usuario actual, recargar datos
+            if (data.caja && data.caja.assignedTo === currentUser._id) {
+              fetchCajaInfo();
+              setSuccess('Caja declinada exitosamente - Se ha notificado al administrador');
+              setTimeout(() => setSuccess(null), 5000);
+            }
+          } else if (data.action === 'movementAdded') {
+            // Si es la caja del usuario actual, recargar datos
+            if (data.caja && data.caja.assignedTo === currentUser._id) {
+              fetchCajaInfo();
+              setSuccess(`✅ ${data.message} - Datos actualizados`);
+              setTimeout(() => setSuccess(null), 3000);
+            }
+          }
+        });
       }
     } else {
       console.log('❌ [FRONTEND] CajaPage: No hay usuario para conectar socket');
@@ -78,18 +148,20 @@ const CajaPage = () => {
     try {
       const res = await api.get('/api/caja/estado');
       setCajaInfo(res.data);
-      console.log('📦 [FRONTEND] Caja cargada exitosamente:', res.data);
+      console.log('📦 [FRONTEND] fetchCajaInfo: Caja cargada exitosamente:', res.data);
     } catch (err) {
-      console.log('❌ [FRONTEND] Error al cargar caja:', err.response?.status, err.response?.data);
+      console.log('❌ [FRONTEND] fetchCajaInfo: Error al cargar caja:', err.response?.status, err.response?.data);
       if (err.response?.status === 404) {
+        console.log('ℹ️ [FRONTEND] fetchCajaInfo: No hay caja asignada - actualizando cajaInfo a null');
         setCajaInfo(null);
-        console.log('ℹ️ [FRONTEND] No hay caja asignada para este usuario');
+        console.log('ℹ️ [FRONTEND] fetchCajaInfo: cajaInfo actualizado a null');
       } else {
         setError('Error al cargar información de caja');
         console.error('Error al cargar caja:', err);
       }
     } finally {
       setLoading(false);
+      console.log('✅ [FRONTEND] fetchCajaInfo: Proceso completado');
     }
   }, [user]);
 
@@ -150,32 +222,124 @@ const CajaPage = () => {
   console.log('✅ CajaPage: Acceso autorizado, renderizando componente...');
 
   // Función para confirmar monto inicial
+  // Función para confirmar monto de caja con encapsulamiento completo
   const confirmarMonto = async () => {
     if (!montoConfirmacion || parseFloat(montoConfirmacion) !== cajaInfo.initialAmount) {
       setError('El monto debe coincidir con el monto inicial asignado');
       return;
     }
     
-    setLoading(true);
+    setConfirmacionLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    console.log('💰 [FRONTEND] Confirmando monto de caja:', {
+      cajaId: cajaInfo._id,
+      montoConfirmacion: parseFloat(montoConfirmacion),
+      montoEsperado: cajaInfo.initialAmount
+    });
+    
     try {
-      await api.post('/api/caja/confirmar', {
+      // 1. Confirmar la caja
+      const response = await api.post('/api/caja/confirmar', {
         cajaId: cajaInfo._id,
         confirmedAmount: parseFloat(montoConfirmacion)
       });
-      setSuccess('Caja confirmada correctamente');
-      setConfirmandoMonto(false);
+      
+      console.log('✅ [FRONTEND] Caja confirmada exitosamente:', response.data);
+      
+      // 2. Limpiar formulario inmediatamente
       setMontoConfirmacion('');
       
-      // Recarga inmediata después de confirmar (encapsulación simple)
-      fetchCajaInfo();
+      // 3. Recargar todos los datos en paralelo para sincronización completa
+      console.log('🔄 [FRONTEND] Recargando todos los datos después de confirmar caja...');
+      await Promise.all([
+        fetchCajaInfo(),
+        fetchInitialData()
+      ]);
+      
+      setSuccess('✅ Caja confirmada correctamente - Datos actualizados');
+      
+      // Limpiar mensaje después de 3 segundos
+      setTimeout(() => setSuccess(null), 3000);
+      
     } catch (err) {
-      setError(err?.response?.data?.message || 'Error al confirmar caja');
+      console.error('❌ [FRONTEND] Error al confirmar caja:', err);
+      const errorMessage = err?.response?.data?.message || 'Error al confirmar caja';
+      setError(`❌ ${errorMessage}`);
+      
+      // Limpiar error después de 5 segundos
+      setTimeout(() => setError(null), 5000);
     } finally {
-      setLoading(false);
+      setConfirmacionLoading(false);
     }
   };
 
-  // Función para registrar movimiento
+  // Función para declinar caja asignada con encapsulamiento completo
+  const declinarCaja = async () => {
+    if (!razonDeclinar.trim()) {
+      setError('Debe proporcionar una razón para declinar la caja');
+      return;
+    }
+    
+    setDeclinarLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    console.log('❌ [FRONTEND] DECLINAR - Iniciando declinación de caja:', {
+      cajaId: cajaInfo._id,
+      razon: razonDeclinar,
+      montoAsignado: cajaInfo.initialAmount
+    });
+    
+    try {
+      // 1. Declinar la caja
+      console.log('❌ [FRONTEND] DECLINAR - Paso 1: Enviando solicitud de declinación...');
+      const response = await api.post('/api/caja/declinar', {
+        cajaId: cajaInfo._id,
+        razon: razonDeclinar
+      });
+      
+      console.log('✅ [FRONTEND] DECLINAR - Paso 1 completado. Respuesta del servidor:', response.data);
+      
+      // 2. Limpiar formularios inmediatamente
+      console.log('🔄 [FRONTEND] DECLINAR - Paso 2: Limpiando formularios...');
+      setRazonDeclinar('');
+      setMostrarDeclinar(false);
+      setMontoConfirmacion('');
+      
+      // 3. Recargar todos los datos en paralelo para sincronización completa
+      console.log('🔄 [FRONTEND] DECLINAR - Paso 3: Iniciando recarga de datos...');
+      await Promise.all([
+        fetchCajaInfo(),        // Esto debe detectar que ya no hay caja asignada
+        fetchInitialData()      // Recargar mesas, menu, pedidos
+      ]);
+      
+      console.log('✅ [FRONTEND] DECLINAR - Paso 3 completado. Datos recargados exitosamente');
+      
+      // 4. Pequeño delay para asegurar que React actualice el estado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('✅ [FRONTEND] DECLINAR - Proceso completo exitoso. La interfaz debería actualizarse ahora.');
+      
+      setSuccess('✅ Caja declinada exitosamente - Se ha notificado al administrador');
+      
+      // Limpiar mensaje después de 5 segundos
+      setTimeout(() => setSuccess(null), 5000);
+      
+    } catch (err) {
+      console.error('❌ [FRONTEND] DECLINAR - Error en el proceso:', err);
+      const errorMessage = err?.response?.data?.message || 'Error al declinar caja';
+      setError(`❌ ${errorMessage}`);
+      
+      // Limpiar error después de 5 segundos
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setDeclinarLoading(false);
+    }
+  };
+
+  // Función para registrar movimiento con encapsulamiento completo
   const registrarMovimiento = async (e) => {
     e.preventDefault();
     if (!nuevoMovimiento.amount || !nuevoMovimiento.description) {
@@ -183,23 +347,53 @@ const CajaPage = () => {
       return;
     }
     
-    setLoading(true);
+    setMovimientoLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    console.log('💰 [FRONTEND] Registrando movimiento:', {
+      type: nuevoMovimiento.type,
+      amount: nuevoMovimiento.amount,
+      description: nuevoMovimiento.description,
+      cajaId: cajaInfo._id
+    });
+    
     try {
-      await api.post('/api/caja/movimiento', {
+      // 1. Registrar el movimiento
+      const response = await api.post('/api/caja/movimiento', {
         cajaId: cajaInfo._id,
         type: nuevoMovimiento.type,
         amount: parseFloat(nuevoMovimiento.amount),
         description: nuevoMovimiento.description
       });
-      setSuccess(`${nuevoMovimiento.type === 'ingreso' ? 'Ingreso' : 'Egreso'} registrado correctamente`);
+      
+      console.log('✅ [FRONTEND] Movimiento registrado exitosamente:', response.data);
+      
+      // 2. Limpiar formulario inmediatamente
       setNuevoMovimiento({ type: 'ingreso', amount: '', description: '' });
       
-      // Recarga inmediata después de registrar movimiento (encapsulación simple)
-      fetchCajaInfo();
+      // 3. Recargar todos los datos en paralelo para sincronización completa
+      console.log('🔄 [FRONTEND] Recargando todos los datos después de registrar movimiento...');
+      await Promise.all([
+        fetchCajaInfo(),
+        fetchInitialData()
+      ]);
+      
+      const tipoMovimiento = nuevoMovimiento.type === 'ingreso' ? 'Ingreso' : 'Egreso';
+      setSuccess(`✅ ${tipoMovimiento} registrado correctamente - Datos actualizados`);
+      
+      // Limpiar mensaje después de 3 segundos
+      setTimeout(() => setSuccess(null), 3000);
+      
     } catch (err) {
-      setError(err?.response?.data?.message || 'Error al registrar movimiento');
+      console.error('❌ [FRONTEND] Error al registrar movimiento:', err);
+      const errorMessage = err?.response?.data?.message || 'Error al registrar movimiento';
+      setError(`❌ ${errorMessage}`);
+      
+      // Limpiar error después de 5 segundos
+      setTimeout(() => setError(null), 5000);
     } finally {
-      setLoading(false);
+      setMovimientoLoading(false);
     }
   };
 
@@ -255,55 +449,81 @@ const CajaPage = () => {
       return;
     }
 
+    if (!cajaInfo || !cajaInfo.confirmed) {
+      setError('No se puede procesar el pago: la caja no está confirmada');
+      return;
+    }
+
+    setPaymentLoading(true);
+    setError(null); // Limpiar errores previos
+    
     try {
+      // 1. Crear la orden según el flujo del backend
       const orderData = {
-        table: selectedMesa._id,
         products: currentOrder.map(item => ({
           productId: item._id,
           name: item.name,
           quantity: item.quantity,
           price: item.price
         })),
-        total: total,
-        paymentMethod: paymentMethod,
-        status: 'pagado'
+        table: selectedMesa._id,
+        type: 'dine-in'
       };
 
-      await api.post('/api/orders', orderData);
+      console.log('🔄 [FRONTEND] Creando orden:', orderData);
+      const orderResponse = await api.post('/api/orders', orderData);
+      const orderId = orderResponse.data.orderId;
       
-      // Actualizar estado de la mesa
-      await api.put(`/api/tables/${selectedMesa._id}`, { status: 'disponible' });
+      // 2. Procesar el pago de la orden
+      console.log('💳 [FRONTEND] Procesando pago para orden:', orderId);
+      await api.post(`/api/orders/${orderId}/pay`);
       
-      // Registrar movimiento en caja si es pago en efectivo
-      if (paymentMethod === 'efectivo' && cajaInfo && cajaInfo.confirmed) {
-        await api.post('/api/caja/movimiento', {
-          cajaId: cajaInfo._id,
-          type: 'ingreso',
-          amount: total,
-          description: `Venta Mesa ${selectedMesa.number} - ${paymentMethod}`
-        });
-      }
+      // 3. Limpiar el estado del pedido actual
+      const totalPagado = total;
+      const mesaNumber = selectedMesa.number;
       
-      // Limpiar pedido actual
       setCurrentOrder([]);
       setSelectedMesa(null);
       setTotal(0);
       
-      setSuccess(`Pago procesado correctamente - Total: ${formatCurrency(total)}`);
+      // 4. Mostrar mensaje de éxito
+      setSuccess(`💰 Pago procesado correctamente - Mesa ${mesaNumber} - Total: ${formatCurrency(totalPagado)} (${paymentMethod})`);
       
-      // Recarga inmediata después de procesar pago (encapsulación simple)
-      fetchInitialData();
-      fetchCajaInfo();
+      // 5. Recargar datos inmediatamente
+      console.log('🔄 [FRONTEND] Recargando datos después del pago...');
+      await Promise.all([
+        fetchInitialData(),
+        fetchCajaInfo()
+      ]);
+      
+      console.log('✅ [FRONTEND] Pago completado y datos actualizados');
+      
     } catch (err) {
-      setError('Error al procesar el pago');
+      console.error('❌ [FRONTEND] Error al procesar pago:', err);
+      const errorMsg = err.response?.data?.message || 'Error al procesar el pago';
+      setError(`Error: ${errorMsg}`);
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
   // Recarga manual de datos (encapsulamiento simple)
-  const handleManualReload = () => {
-    fetchCajaInfo();
-    fetchInitialData();
-    setSuccess('Datos actualizados');
+  const handleManualReload = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 [FRONTEND] Recarga manual iniciada...');
+      await Promise.all([
+        fetchCajaInfo(),
+        fetchInitialData()
+      ]);
+      setSuccess('✅ Datos actualizados correctamente');
+      console.log('✅ [FRONTEND] Recarga manual completada');
+    } catch (err) {
+      console.error('❌ [FRONTEND] Error en recarga manual:', err);
+      setError('Error al actualizar los datos');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -508,16 +728,16 @@ const CajaPage = () => {
                       <button 
                         className="caja-btn caja-btn-primary"
                         onClick={() => processPayment('efectivo')}
-                        disabled={currentOrder.length === 0}
+                        disabled={currentOrder.length === 0 || paymentLoading}
                       >
-                        💵 Efectivo
+                        {paymentLoading ? '⏳ Procesando...' : '💵 Efectivo'}
                       </button>
                       <button 
                         className="caja-btn caja-btn-primary"
                         onClick={() => processPayment('tarjeta')}
-                        disabled={currentOrder.length === 0}
+                        disabled={currentOrder.length === 0 || paymentLoading}
                       >
-                        💳 Tarjeta
+                        {paymentLoading ? '⏳ Procesando...' : '💳 Tarjeta'}
                       </button>
                     </div>
                   </div>
@@ -562,11 +782,59 @@ const CajaPage = () => {
                       <button 
                         onClick={confirmarMonto} 
                         className="caja-btn caja-btn-primary"
-                        disabled={loading}
+                        disabled={confirmacionLoading || declinarLoading}
                       >
-                        Confirmar y Abrir Caja
+                        {confirmacionLoading ? 'Confirmando...' : 'Confirmar y Abrir Caja'}
+                      </button>
+                      <button 
+                        onClick={() => setMostrarDeclinar(true)} 
+                        className="caja-btn caja-btn-danger"
+                        disabled={confirmacionLoading || declinarLoading}
+                      >
+                        No Cuadra - Declinar
                       </button>
                     </div>
+                    
+                    {/* Modal para declinar caja */}
+                    {mostrarDeclinar && (
+                      <div className="modal-overlay">
+                        <div className="modal-content">
+                          <h4>🚨 Declinar Caja Asignada</h4>
+                          <p>Si el monto en efectivo no coincide con el asignado, puedes declinar esta caja.</p>
+                          <div className="declinar-form">
+                            <label>
+                              Motivo de la declinación:
+                              <textarea
+                                value={razonDeclinar}
+                                onChange={(e) => setRazonDeclinar(e.target.value)}
+                                placeholder="Ej: El efectivo en caja solo suma $15.50, no los $20.00 asignados"
+                                rows={3}
+                                required
+                              />
+                            </label>
+                            <div className="modal-actions">
+                              <button 
+                                onClick={declinarCaja}
+                                className="caja-btn caja-btn-danger"
+                                disabled={declinarLoading || !razonDeclinar.trim()}
+                              >
+                                {declinarLoading ? 'Declinando...' : 'Confirmar Declinación'}
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setMostrarDeclinar(false);
+                                  setRazonDeclinar('');
+                                }}
+                                className="caja-btn caja-btn-secondary"
+                                disabled={declinarLoading}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -620,8 +888,8 @@ const CajaPage = () => {
                         required
                       />
                     </div>
-                    <button type="submit" className="caja-btn caja-btn-primary" disabled={loading}>
-                      Registrar Movimiento
+                    <button type="submit" className="caja-btn caja-btn-primary" disabled={movimientoLoading}>
+                      {movimientoLoading ? 'Registrando...' : 'Registrar Movimiento'}
                     </button>
                   </form>
                 </div>

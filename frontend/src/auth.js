@@ -17,9 +17,7 @@ export function getToken() {
 
 export function getUser() {
   const user = localStorage.getItem('user');
-  const parsedUser = user ? JSON.parse(user) : null;
-  console.log('👤 [FRONTEND] getUser() llamado, usuario:', parsedUser);
-  return parsedUser;
+  return user ? JSON.parse(user) : null;
 }
 
 export function logout(onLogout) {

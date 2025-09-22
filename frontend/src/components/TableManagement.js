@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import { getSocket } from '../socket';
 
 const TableManagement = () => {
   const [mesas, setMesas] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [operationLoading, setOperationLoading] = useState(false);
   const [error, setError] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -18,17 +20,52 @@ const TableManagement = () => {
 
   useEffect(() => {
     fetchMesas();
+    
+    // Configurar listener de WebSocket para actualizaciones en tiempo real
+    const socket = getSocket();
+    if (socket) {
+      const handleTableUpdate = (data) => {
+        console.log('🪑 [ADMIN TABLES] Mesa actualizada via WebSocket:', data);
+        
+        if (data.action === 'created') {
+          setMesas(prevMesas => [...prevMesas, data.table]);
+          setStatusMsg('✅ Nueva mesa creada en tiempo real');
+          setTimeout(() => setStatusMsg(null), 3000);
+        } else if (data.action === 'updated') {
+          setMesas(prevMesas => 
+            prevMesas.map(m => m._id === data.table._id ? data.table : m)
+          );
+        } else if (data.action === 'deleted') {
+          setMesas(prevMesas => 
+            prevMesas.filter(m => m._id !== data.tableId)
+          );
+          setStatusMsg('ℹ️ Mesa eliminada en tiempo real');
+          setTimeout(() => setStatusMsg(null), 3000);
+        }
+      };
+      
+      socket.on('tableUpdated', handleTableUpdate);
+      
+      // Limpiar listener al desmontar
+      return () => {
+        socket.off('tableUpdated', handleTableUpdate);
+      };
+    }
   }, []);
 
   const fetchMesas = async () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('🔄 [ADMIN TABLES] Cargando mesas...');
       const response = await api.get('/api/tables');
-      setMesas(response.data);
+      const mesasValidas = Array.isArray(response.data) ? response.data : [];
+      setMesas(mesasValidas);
+      console.log(`✅ [ADMIN TABLES] Mesas cargadas: ${mesasValidas.length}`);
     } catch (err) {
+      console.error('❌ [ADMIN TABLES] Error al cargar mesas:', err);
       setError('Error al cargar las mesas');
-      console.error('Error fetching tables:', err);
+      setMesas([]);
     } finally {
       setLoading(false);
     }
@@ -37,30 +74,51 @@ const TableManagement = () => {
   const createTable = async (e) => {
     e.preventDefault();
     setStatusMsg(null);
+    setError(null);
+    setOperationLoading(true);
+    
     try {
+      console.log('➕ [ADMIN TABLES] Creando nueva mesa:', newTable);
       await api.post('/api/tables', newTable);
-      setStatusMsg('Mesa creada exitosamente');
+      setStatusMsg('✅ Mesa creada exitosamente');
       setNewTable({ number: '', capacity: 4, status: 'free' });
       setShowCreateForm(false);
-      fetchMesas();
+      
+      // Recarga inmediata después de crear (encapsulación)
+      console.log('🔄 [ADMIN TABLES] Recarga inmediata después de crear mesa');
+      await fetchMesas();
       setTimeout(() => setStatusMsg(null), 3000);
     } catch (err) {
-      setError('Error al crear la mesa');
+      console.error('❌ [ADMIN TABLES] Error al crear mesa:', err);
+      setError(err?.response?.data?.message || 'Error al crear la mesa');
       setTimeout(() => setError(null), 3000);
+    } finally {
+      setOperationLoading(false);
     }
   };
 
   const updateTable = async (tableId, updates) => {
     setStatusMsg(null);
+    setError(null);
+    setOperationLoading(true);
+    
     try {
+      console.log('📝 [ADMIN TABLES] Actualizando mesa:', tableId, updates);
       await api.put(`/api/tables/${tableId}`, updates);
-      setStatusMsg('Mesa actualizada exitosamente');
+      setStatusMsg('✅ Mesa actualizada exitosamente');
       setEditingTable(null);
-      fetchMesas();
+      setEditingCapacity(null);
+      
+      // Recarga inmediata después de actualizar (encapsulación)
+      console.log('🔄 [ADMIN TABLES] Recarga inmediata después de actualizar mesa');
+      await fetchMesas();
       setTimeout(() => setStatusMsg(null), 3000);
     } catch (err) {
-      setError('Error al actualizar la mesa');
+      console.error('❌ [ADMIN TABLES] Error al actualizar mesa:', err);
+      setError(err?.response?.data?.message || 'Error al actualizar la mesa');
       setTimeout(() => setError(null), 3000);
+    } finally {
+      setOperationLoading(false);
     }
   };
 
@@ -78,14 +136,24 @@ const TableManagement = () => {
     }
     
     setStatusMsg(null);
+    setError(null);
+    setOperationLoading(true);
+    
     try {
+      console.log('🗑️ [ADMIN TABLES] Eliminando mesa:', tableId);
       await api.delete(`/api/tables/${tableId}`);
-      setStatusMsg('Mesa eliminada exitosamente');
-      fetchMesas();
+      setStatusMsg('✅ Mesa eliminada exitosamente');
+      
+      // Recarga inmediata después de eliminar (encapsulación)
+      console.log('🔄 [ADMIN TABLES] Recarga inmediata después de eliminar mesa');
+      await fetchMesas();
       setTimeout(() => setStatusMsg(null), 3000);
     } catch (err) {
-      setError('Error al eliminar la mesa');
+      console.error('❌ [ADMIN TABLES] Error al eliminar mesa:', err);
+      setError(err?.response?.data?.message || 'Error al eliminar la mesa');
       setTimeout(() => setError(null), 3000);
+    } finally {
+      setOperationLoading(false);
     }
   };
 
@@ -109,6 +177,24 @@ const TableManagement = () => {
     return colors[status] || '#6b7280';
   };
 
+  // Recarga manual de datos (encapsulamiento)
+  const handleManualReload = async () => {
+    setOperationLoading(true);
+    try {
+      console.log('🔄 [ADMIN TABLES] Recarga manual iniciada...');
+      await fetchMesas();
+      setStatusMsg('✅ Mesas actualizadas correctamente');
+      setTimeout(() => setStatusMsg(null), 3000);
+      console.log('✅ [ADMIN TABLES] Recarga manual completada');
+    } catch (err) {
+      console.error('❌ [ADMIN TABLES] Error en recarga manual:', err);
+      setError('Error al actualizar las mesas');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
   return (
     <div className="table-management">
       <div className="table-management-header">
@@ -127,12 +213,23 @@ const TableManagement = () => {
             </span>
           </div>
         </div>
-        <button 
-          className="admin-btn admin-btn-primary"
-          onClick={() => setShowCreateForm(!showCreateForm)}
-        >
-          {showCreateForm ? '❌ Cancelar' : '➕ Nueva Mesa'}
-        </button>
+        <div className="table-header-actions">
+          <button 
+            className="admin-btn admin-btn-refresh"
+            onClick={handleManualReload}
+            disabled={operationLoading || loading}
+            title="Actualizar lista de mesas"
+          >
+            {operationLoading || loading ? '🔄 Actualizando...' : '🔄 Actualizar'}
+          </button>
+          <button 
+            className="admin-btn admin-btn-primary"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            disabled={operationLoading}
+          >
+            {showCreateForm ? '❌ Cancelar' : '➕ Nueva Mesa'}
+          </button>
+        </div>
       </div>
 
       {/* Mensajes de estado */}
@@ -182,8 +279,8 @@ const TableManagement = () => {
                 </select>
               </div>
             </div>
-            <button type="submit" className="admin-btn admin-btn-success">
-              Crear Mesa
+            <button type="submit" className="admin-btn admin-btn-success" disabled={operationLoading}>
+              {operationLoading ? '⏳ Creando...' : 'Crear Mesa'}
             </button>
           </form>
         </div>
@@ -295,6 +392,7 @@ const TableManagement = () => {
                         onClick={() => setEditingTable(mesa._id)}
                         className="admin-btn admin-btn-sm admin-btn-warning"
                         title="Cambiar estado de la mesa"
+                        disabled={operationLoading}
                       >
                         ✏️ Editar
                       </button>
@@ -302,9 +400,9 @@ const TableManagement = () => {
                         onClick={() => deleteTable(mesa._id)}
                         className="admin-btn admin-btn-sm admin-btn-danger"
                         title="Eliminar mesa permanentemente"
-                        disabled={mesa.status === 'occupied'}
+                        disabled={mesa.status === 'occupied' || operationLoading}
                       >
-                        🗑️ Eliminar
+                        {operationLoading ? '⏳' : '🗑️'} Eliminar
                       </button>
                     </>
                   )}

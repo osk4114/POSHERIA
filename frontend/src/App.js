@@ -5,6 +5,7 @@ import CajaPage from './pages/cajaPages/CajaPage';
 import MozoPage from './pages/mozoPages/MozoPage';
 import KitchenPage from './pages/kitchenPages/KitchenPage';
 import AdminPage from './pages/adminPages/AdminPage';
+import MenuDisplayPage from './pages/menuPages/MenuDisplayPage';
 import NotificationSystem from './components/NotificationSystem';
 import OfflineBanner from './components/OfflineBanner';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -32,6 +33,7 @@ function App() {
           
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/menu-display" element={<MenuDisplayPage />} />
             <Route path="/caja" element={
               <PrivateRoute role="caja">
                 <CajaPage />

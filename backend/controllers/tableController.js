@@ -52,6 +52,16 @@ async function crearMesa(req, res) {
     const { number, status } = req.body;
     const mesa = new Table({ number, status });
     const result = await db.collection('tables').insertOne(mesa);
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('tableUpdated', {
+        action: 'created',
+        table: { ...mesa, _id: result.insertedId }
+      });
+      console.log('🔄 [WEBSOCKET] Evento tableUpdated emitido (created):', number);
+    }
+    
     res.json({ message: 'Mesa creada', mesaId: result.insertedId });
   } catch (err) {
     res.status(500).json({ message: 'Error al crear mesa', error: err.message });
@@ -94,6 +104,16 @@ async function actualizarMesa(req, res) {
     if (!mesaActualizada || (typeof mesaActualizada === 'object' && Object.keys(mesaActualizada).length === 0)) {
       return res.status(404).json({ message: 'Mesa no encontrada' });
     }
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('tableUpdated', {
+        action: 'updated',
+        table: mesaActualizada
+      });
+      console.log('🔄 [WEBSOCKET] Evento tableUpdated emitido:', mesaActualizada.number);
+    }
+    
     res.json({ message: 'Mesa actualizada', mesa: mesaActualizada });
   } catch (err) {
     console.error('[actualizarMesa] Error general:', err);
@@ -108,6 +128,16 @@ async function eliminarMesa(req, res) {
     const { id } = req.params;
     const result = await db.collection('tables').deleteOne({ _id: new ObjectId(id) });
     if (result.deletedCount === 0) return res.status(404).json({ message: 'Mesa no encontrada' });
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('tableUpdated', {
+        action: 'deleted',
+        tableId: id
+      });
+      console.log('🔄 [WEBSOCKET] Evento tableUpdated emitido (deleted):', id);
+    }
+    
     res.json({ message: 'Mesa eliminada' });
   } catch (err) {
     res.status(500).json({ message: 'Error al eliminar mesa', error: err.message });

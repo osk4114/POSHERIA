@@ -20,6 +20,22 @@ const app = express();
 
 app.use(logger);
 app.use(express.json());
+
+// Configuración de CORS para permitir peticiones desde el frontend
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Manejar preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // Servir archivos estáticos del build de React desde backend/views
 app.use(express.static(path.join(__dirname, 'views')));
 // Servir archivos públicos (imágenes, etc.)

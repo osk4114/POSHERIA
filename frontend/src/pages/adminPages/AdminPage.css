@@ -19,6 +19,40 @@ body {
 	color: #1f2937 !important;
 }
 
+/* === ESTILOS PARA TABLE MANAGEMENT === */
+
+.table-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-btn-refresh {
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-btn-refresh:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.admin-btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .admin-dashboard-layout {
 	display: flex;
 	height: 100vh;
@@ -2345,6 +2379,79 @@ input, select, textarea, option {
   margin-bottom: 15px;
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+/* === ESTILOS PARA GESTIÓN DE MENÚ === */
+
+.menu-dashboard {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.menu-quick-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.menu-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card-compact.menu-total {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stat-card-compact.menu-active {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.stat-card-compact.menu-categories {
+  background: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%);
+  color: white;
+}
+
+.stat-card-compact.menu-revenue {
+  background: linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%);
+  color: white;
+}
+
+.menu-dashboard .stat-card-compact {
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-dashboard .stat-card-compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.menu-dashboard .stat-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.menu-dashboard .stat-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.menu-dashboard .stat-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  font-weight: 500;
 }
 
 .nueva-caja-form {

@@ -32,6 +32,17 @@ async function abrirCaja(req, res) {
     
     const caja = new Caja({ assignedTo: targetUserId, initialAmount: initialAmount || 0, status: 'open', confirmed: false, createdAt: new Date() });
     const result = await db.collection('cajas').insertOne(caja);
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('cajaUpdated', {
+        action: 'opened',
+        caja: { ...caja, _id: result.insertedId },
+        message: 'Nueva caja abierta'
+      });
+      console.log('🔄 [WEBSOCKET] Evento cajaUpdated emitido (opened):', targetUserId);
+    }
+    
     res.json({ message: 'Caja abierta (pendiente de confirmación)', cajaId: result.insertedId });
   } catch (err) {
     res.status(500).json({ message: 'Error al abrir caja', error: err.message });
@@ -42,7 +53,14 @@ async function abrirCaja(req, res) {
 async function confirmarCaja(req, res) {
   try {
     const db = getDB();
-    const { cajaId } = req.body;
+    const { cajaId, confirmedAmount } = req.body;
+    
+    console.log('💰 [BACKEND] Confirmando caja:', {
+      cajaId,
+      confirmedAmount,
+      userId: req.user._id,
+      userRole: req.user.role
+    });
     
     // Verificar que la caja pertenece al usuario actual (o es admin)
     const filter = { _id: new ObjectId(cajaId), status: 'open', confirmed: false };
@@ -50,19 +68,128 @@ async function confirmarCaja(req, res) {
       filter.assignedTo = new ObjectId(req.user._id);
     }
     
+    // Actualizar la caja con confirmación y monto confirmado
+    const updateData = { 
+      confirmed: true, 
+      confirmedAt: new Date()
+    };
+    
+    if (confirmedAmount !== undefined) {
+      updateData.confirmedAmount = confirmedAmount;
+    }
+    
     const caja = await db.collection('cajas').findOneAndUpdate(
       filter,
-      { $set: { confirmed: true, confirmedAt: new Date() } },
+      { $set: updateData },
       { returnDocument: 'after' }
     );
     
     if (!caja.value) {
+      console.log('❌ [BACKEND] Caja no encontrada o ya confirmada:', { filter });
       return res.status(404).json({ message: 'Caja no encontrada, ya confirmada o no tienes permisos para confirmarla' });
+    }
+    
+    console.log('✅ [BACKEND] Caja confirmada exitosamente:', caja.value);
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('cajaUpdated', {
+        action: 'confirmed',
+        caja: caja.value,
+        message: 'Caja confirmada exitosamente'
+      });
+      console.log('🔄 [WEBSOCKET] Evento cajaUpdated emitido (confirmed):', cajaId);
     }
     
     res.json({ message: 'Caja confirmada', caja: caja.value });
   } catch (err) {
+    console.error('❌ [BACKEND] Error al confirmar caja:', err);
     res.status(500).json({ message: 'Error al confirmar caja', error: err.message });
+  }
+}
+
+// Declinar caja asignada (cajero)
+async function declinarCaja(req, res) {
+  try {
+    const db = getDB();
+    const { cajaId, razon } = req.body;
+    
+    console.log('❌ [BACKEND] Declinando caja:', {
+      cajaId,
+      razon,
+      userId: req.user._id,
+      userRole: req.user.role
+    });
+
+    // Primero buscar la caja para diagnóstico
+    const cajaExistente = await db.collection('cajas').findOne({ 
+      _id: new ObjectId(cajaId),
+      assignedTo: new ObjectId(req.user._id)
+    });
+
+    console.log('🔍 [BACKEND] Estado actual de la caja antes de declinar:', cajaExistente);
+
+    if (!cajaExistente) {
+      console.log('❌ [BACKEND] Caja no encontrada para este usuario:', { cajaId, userId: req.user._id });
+      return res.status(404).json({ message: 'Caja no encontrada o no tienes permisos para declinarla' });
+    }
+
+    if (cajaExistente.status !== 'open') {
+      console.log('❌ [BACKEND] Caja no está abierta:', { status: cajaExistente.status });
+      return res.status(400).json({ message: `No se puede declinar una caja con estado: ${cajaExistente.status}` });
+    }
+
+    if (cajaExistente.confirmed) {
+      console.log('❌ [BACKEND] Caja ya confirmada, no se puede declinar');
+      return res.status(400).json({ message: 'No se puede declinar una caja que ya fue confirmada' });
+    }
+    
+    // Verificar que la caja pertenece al usuario actual (o es admin)
+    const filter = { _id: new ObjectId(cajaId), status: 'open', confirmed: false };
+    if (req.user.role !== 'admin') {
+      filter.assignedTo = new ObjectId(req.user._id);
+    }
+    
+    // Marcar la caja como declinada
+    const updateData = { 
+      status: 'declined',
+      declinedAt: new Date(),
+      declineReason: razon,
+      declinedBy: new ObjectId(req.user._id)
+    };
+    
+    // Usar updateOne en lugar de findOneAndUpdate para evitar problemas con el filtro cambiante
+    const updateResult = await db.collection('cajas').updateOne(
+      filter,
+      { $set: updateData }
+    );
+    
+    if (updateResult.matchedCount === 0) {
+      console.log('❌ [BACKEND] Error en updateOne - No se encontró caja que coincida con el filtro:', { filter });
+      console.log('❌ [BACKEND] Estado actual después del intento:', await db.collection('cajas').findOne({ _id: new ObjectId(cajaId) }));
+      return res.status(404).json({ message: 'Error interno: No se pudo declinar la caja' });
+    }
+
+    // Obtener la caja actualizada
+    const cajaActualizada = await db.collection('cajas').findOne({ _id: new ObjectId(cajaId) });
+    
+    console.log('✅ [BACKEND] Caja declinada exitosamente:', cajaActualizada);
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('cajaUpdated', {
+        action: 'declined',
+        caja: cajaActualizada,
+        razon: razon,
+        message: 'Caja declinada por el cajero'
+      });
+      console.log('🔄 [WEBSOCKET] Evento cajaUpdated emitido (declined):', cajaId);
+    }
+    
+    res.json({ message: 'Caja declinada exitosamente', caja: cajaActualizada });
+  } catch (err) {
+    console.error('❌ [BACKEND] Error al declinar caja:', err);
+    res.status(500).json({ message: 'Error al declinar caja', error: err.message });
   }
 }
 
@@ -71,6 +198,16 @@ async function registrarMovimiento(req, res) {
   try {
     const db = getDB();
     const { cajaId, type, amount, description, orderId } = req.body;
+    
+    console.log('💰 [BACKEND] Registrando movimiento:', {
+      cajaId,
+      type,
+      amount,
+      description,
+      orderId,
+      userId: req.user._id
+    });
+    
     const movimiento = {
       type,
       amount,
@@ -78,14 +215,37 @@ async function registrarMovimiento(req, res) {
       orderId: orderId ? new ObjectId(orderId) : undefined,
       createdAt: new Date()
     };
-    const caja = await db.collection('cajas').findOneAndUpdate(
+    
+    // Primero actualizar la caja con el movimiento
+    const updateResult = await db.collection('cajas').updateOne(
       { _id: new ObjectId(cajaId), status: 'open', confirmed: true },
-      { $push: { movements: movimiento } },
-      { returnDocument: 'after' }
+      { $push: { movements: movimiento } }
     );
-    if (!caja.value) return res.status(404).json({ message: 'Caja no encontrada, cerrada o no confirmada' });
-    res.json({ message: 'Movimiento registrado', caja: caja.value });
+    
+    if (updateResult.matchedCount === 0) {
+      console.log('❌ [BACKEND] Caja no encontrada, cerrada o no confirmada:', cajaId);
+      return res.status(404).json({ message: 'Caja no encontrada, cerrada o no confirmada' });
+    }
+    
+    // Obtener la caja actualizada
+    const cajaActualizada = await db.collection('cajas').findOne({ _id: new ObjectId(cajaId) });
+    
+    console.log('✅ [BACKEND] Movimiento registrado exitosamente:', movimiento);
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('cajaUpdated', {
+        action: 'movementAdded',
+        caja: cajaActualizada,
+        movement: movimiento,
+        message: `${type === 'ingreso' ? 'Ingreso' : 'Egreso'} registrado correctamente`
+      });
+      console.log('🔄 [WEBSOCKET] Evento cajaUpdated emitido (movementAdded):', cajaId);
+    }
+    
+    res.json({ message: 'Movimiento registrado', caja: cajaActualizada });
   } catch (err) {
+    console.error('❌ [BACKEND] Error al registrar movimiento:', err);
     res.status(500).json({ message: 'Error al registrar movimiento', error: err.message });
   }
 }
@@ -108,6 +268,16 @@ async function cerrarCaja(req, res) {
     
     if (!caja.value) {
       return res.status(404).json({ message: 'Caja no encontrada o ya cerrada' });
+    }
+    
+    // Emitir evento de WebSocket para sincronizar cambios
+    if (global._io) {
+      global._io.emit('cajaUpdated', {
+        action: 'closed',
+        caja: caja.value,
+        message: 'Caja cerrada exitosamente'
+      });
+      console.log('🔄 [WEBSOCKET] Evento cajaUpdated emitido (closed):', cajaId);
     }
     
     res.json({ message: 'Caja cerrada exitosamente', caja: caja.value });
@@ -244,6 +414,7 @@ module.exports = {
   todasLasCajasAbiertas,
   historialCajas,
   confirmarCaja,
+  declinarCaja,
   limpiarCajasUsuario,
   getVentasHoy
 };

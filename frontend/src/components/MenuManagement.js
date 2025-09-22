@@ -19,6 +19,12 @@ const MenuManagement = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  
+  // Estados para filtros y búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [availabilityFilter, setAvailabilityFilter] = useState('Todos');
+  const [sortBy, setSortBy] = useState('name');
 
   const categories = ['Pollos', 'Bebidas', 'Acompañamientos', 'Postres', 'Ensaladas'];
 
@@ -37,6 +43,36 @@ const MenuManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para filtrar y ordenar items
+  const getFilteredAndSortedItems = () => {
+    let filtered = menuItems.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'Todos' || item.category === selectedCategory;
+      const matchesAvailability = availabilityFilter === 'Todos' || 
+                                  (availabilityFilter === 'Disponible' && item.available) ||
+                                  (availabilityFilter === 'No disponible' && !item.available);
+      
+      return matchesSearch && matchesCategory && matchesAvailability;
+    });
+
+    // Ordenar
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'price':
+          return a.price - b.price;
+        case 'category':
+          return a.category.localeCompare(b.category);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
   };
 
   const handleInputChange = (e) => {
@@ -172,11 +208,74 @@ const MenuManagement = () => {
           onClick={() => {
             setShowForm(true);
             setEditingItem(null);
-            setFormData({ name: '', price: '', category: '', description: '', available: true });
+            setFormData({ name: '', price: '', category: '', description: '', image: '', available: true });
+            setImagePreview(null);
+            setImageFile(null);
           }}
         >
           + Agregar Producto
         </button>
+      </div>
+
+      {/* Controles de filtros y búsqueda */}
+      <div className="menu-filters">
+        <div className="filter-row">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="🔍 Buscar productos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          
+          <div className="filter-group">
+            <label>Categoría:</label>
+            <select 
+              value={selectedCategory} 
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="filter-select"
+            >
+              <option value="Todos">Todas las categorías</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Estado:</label>
+            <select 
+              value={availabilityFilter} 
+              onChange={(e) => setAvailabilityFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="Todos">Todos</option>
+              <option value="Disponible">Disponibles</option>
+              <option value="No disponible">No disponibles</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Ordenar por:</label>
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value)}
+              className="filter-select"
+            >
+              <option value="name">Nombre</option>
+              <option value="price">Precio</option>
+              <option value="category">Categoría</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="results-info">
+          <span>
+            Mostrando {getFilteredAndSortedItems().length} de {menuItems.length} productos
+          </span>
+        </div>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
@@ -307,19 +406,29 @@ const MenuManagement = () => {
       )}
 
       <div className="menu-grid">
-        {menuItems.length === 0 ? (
+        {getFilteredAndSortedItems().length === 0 ? (
           <div className="empty-state">
-            <p>No hay productos en el menú</p>
-            <button 
-              className="btn btn-primary"
-              onClick={() => setShowForm(true)}
-            >
-              Agregar primer producto
-            </button>
+            {menuItems.length === 0 ? (
+              <>
+                <p>No hay productos en el menú</p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => setShowForm(true)}
+                >
+                  Agregar primer producto
+                </button>
+              </>
+            ) : (
+              <p>No se encontraron productos con los filtros aplicados</p>
+            )}
           </div>
         ) : (
-          menuItems.map(item => (
-            <div key={item._id} className={`menu-card ${!item.available ? 'unavailable' : ''}`}>
+          getFilteredAndSortedItems().map(item => (
+            <div 
+              key={item._id} 
+              className={`menu-card ${!item.available ? 'unavailable' : ''}`}
+              data-category={item.category}
+            >
               {item.image && (
                 <div className="menu-card-image">
                   <img 
@@ -359,11 +468,11 @@ const MenuManagement = () => {
               </div>
               
               <div className="menu-card-content">
-                <div className="price">S/. {item.price.toFixed(2)}</div>
+                <div className="price">{item.price.toFixed(2)}</div>
                 {item.category && <div className="category">{item.category}</div>}
                 {item.description && <div className="description">{item.description}</div>}
                 <div className={`status ${item.available ? 'available' : 'unavailable'}`}>
-                  {item.available ? 'Disponible' : 'No disponible'}
+                  {item.available ? '✅ Disponible' : '❌ No disponible'}
                 </div>
               </div>
             </div>

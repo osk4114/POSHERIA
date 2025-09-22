@@ -1,0 +1,653 @@
+/* ===== ADMIN CAJA DASHBOARD STYLES ===== */
+
+/* Dashboard Principal */
+.caja-dashboard {
+  padding: 20px;
+  background: linear-gradient(135deg, #f6f9fc 0%, #ffffff 100%);
+  min-height: 100vh;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e1e8ed;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.refresh-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.refresh-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* Error Banner */
+.error-banner {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+/* Grid de Estadísticas */
+.caja-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: all 0.3s ease;
+  border-left: 4px solid;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.primary {
+  border-left-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stat-card.success {
+  border-left-color: #51cf66;
+  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+  color: white;
+}
+
+.stat-card.warning {
+  border-left-color: #ffd43b;
+  background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+  color: #333;
+}
+
+.stat-card.info {
+  border-left-color: #339af0;
+  background: linear-gradient(135deg, #339af0 0%, #228be6 100%);
+  color: white;
+}
+
+.stat-icon {
+  font-size: 32px;
+  opacity: 0.9;
+}
+
+.stat-content h4 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1;
+}
+
+.stat-content p {
+  font-size: 14px;
+  margin: 5px 0 0 0;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+/* Panel Principal */
+.caja-main-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Secciones del Panel */
+.panel-section {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+}
+
+.panel-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px 25px;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.panel-content {
+  padding: 25px;
+}
+
+/* Formulario Nueva Caja */
+.nueva-caja-form-modern {
+  width: 100%;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 20px;
+  align-items: end;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.form-select,
+.form-input {
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.form-select:focus,
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-abrir-caja {
+  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3);
+  white-space: nowrap;
+}
+
+.btn-abrir-caja:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(81, 207, 102, 0.4);
+}
+
+.btn-abrir-caja:disabled {
+  opacity: 0.7;
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* Estados Vacíos */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Tablas Modernas */
+.cajas-table-wrapper,
+.historial-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+}
+
+.cajas-table.modern,
+.historial-table.modern {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.cajas-table.modern th,
+.historial-table.modern th {
+  background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+  color: white;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cajas-table.modern td,
+.historial-table.modern td {
+  padding: 15px 12px;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: top;
+}
+
+.caja-row,
+.historial-row {
+  transition: all 0.3s ease;
+}
+
+.caja-row:hover,
+.historial-row:hover {
+  background: #f8f9fa;
+}
+
+.caja-row.confirmed {
+  background: rgba(81, 207, 102, 0.05);
+}
+
+.caja-row.pending {
+  background: rgba(255, 212, 59, 0.05);
+}
+
+/* Elementos de Tabla */
+.caja-id-badge {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.cajero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cajero-name {
+  font-weight: 600;
+  color: #495057;
+}
+
+.cajero-username {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.montos-info,
+.montos-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.monto-inicial,
+.monto-actual,
+.monto-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.monto-row.declined {
+  color: #dc3545;
+  font-style: italic;
+}
+
+.monto-label,
+.fecha-label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.monto-value,
+.fecha-value {
+  font-weight: 600;
+  color: #495057;
+}
+
+.actividad-info,
+.actividad-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.movimientos-count,
+.movimientos-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  width: fit-content;
+}
+
+.confirmado-badge,
+.declinado-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.confirmado-badge {
+  background: rgba(81, 207, 102, 0.2);
+  color: #28a745;
+}
+
+.declinado-badge {
+  background: rgba(255, 107, 107, 0.2);
+  color: #dc3545;
+}
+
+.tiempo-abierta {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+/* Información de Fechas Mejorada */
+.fechas-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fecha-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.fecha-row.declined {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* Nueva sección de Detalles */
+.detalles-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 150px;
+}
+
+.decline-details,
+.close-details,
+.open-details {
+  background: rgba(248, 249, 250, 0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border-left: 3px solid;
+}
+
+.decline-details {
+  border-left-color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.close-details {
+  border-left-color: #6c757d;
+  background: rgba(108, 117, 125, 0.1);
+}
+
+.open-details {
+  border-left-color: #28a745;
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.detail-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+  word-break: break-word;
+}
+
+/* Filas del historial con estados */
+.historial-row.declined {
+  background: rgba(220, 53, 69, 0.05);
+}
+
+.historial-row.closed {
+  background: rgba(108, 117, 125, 0.05);
+}
+
+.historial-row.open {
+  background: rgba(40, 167, 69, 0.05);
+}
+
+/* Pills de Estado */
+.status-pill {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-pill.confirmed {
+  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+  color: white;
+}
+
+.status-pill.pending {
+  background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+  color: #333;
+}
+
+.status-pill.open {
+  background: linear-gradient(135deg, #339af0 0%, #228be6 100%);
+  color: white;
+}
+
+.status-pill.closed {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+}
+
+.status-pill.declined {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  color: white;
+}
+
+/* Botones de Acción */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-cerrar-caja {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.btn-cerrar-caja:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.btn-cerrar-caja:disabled {
+  opacity: 0.7;
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* Controles del Historial */
+.historial-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.search-input,
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+}
+
+.search-input {
+  width: 200px;
+}
+
+.filter-select {
+  width: 150px;
+}
+
+/* Información de Fechas */
+.fechas-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fecha-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .caja-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .historial-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .search-input,
+  .filter-select {
+    width: 100%;
+  }
+
+  /* Ocultar columna de detalles en móviles */
+  .historial-table.modern th:last-child,
+  .historial-table.modern td:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .caja-dashboard {
+    padding: 15px;
+  }
+  
+  .panel-content {
+    padding: 20px;
+  }
+  
+  .cajas-table-wrapper,
+  .historial-table-wrapper {
+    font-size: 12px;
+  }
+
+  /* En móviles muy pequeños, simplificar tabla */
+  .historial-table.modern th:nth-child(4),
+  .historial-table.modern td:nth-child(4),
+  .historial-table.modern th:nth-child(6),
+  .historial-table.modern td:nth-child(6) {
+    display: none;
+  }
+}
