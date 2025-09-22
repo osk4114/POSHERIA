@@ -20,44 +20,51 @@ async function createAddOnOrder(req, res) {
     const orders = db.collection('orders');
     const {
       products, // [{ productId, name, quantity, price }]
-      table, // tableId
-      parentOrderId // pedido principal
+      table // tableId - solo necesitamos la mesa
     } = req.body;
     const userId = req.user._id; // mozo
 
-    // Validar mesa y pedido principal
-    if (!table || !parentOrderId) {
-      return res.status(400).json({ message: 'Faltan datos requeridos (table, parentOrderId)' });
+    // Validar solo la mesa (NO necesitamos parentOrderId)
+    if (!table || !products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: 'Faltan datos requeridos (table, products)' });
     }
+    
     const mesas = db.collection('tables');
     const mesaObjId = new ObjectId(table);
     const mesa = await mesas.findOne({ _id: mesaObjId });
     if (!mesa) {
       return res.status(400).json({ message: 'Mesa no encontrada.' });
     }
+    
     // Validar que el mozo esté asignado a la mesa
     if (!mesa.waiterId || String(mesa.waiterId) !== String(userId)) {
       return res.status(403).json({ message: 'No tienes asignada esta mesa.' });
     }
-    // Validar pedido principal
-    const pedidoPrincipal = await orders.findOne({ _id: new ObjectId(parentOrderId), table: mesaObjId });
-    if (!pedidoPrincipal) {
-      return res.status(400).json({ message: 'Pedido principal no encontrado para esta mesa.' });
-    }
 
+    // Crear el añadido como orden independiente asociada a la mesa
     const order = {
       products,
       table: mesaObjId,
       status: 'pending',
-      type: 'add-on',
-      parentOrderId: new ObjectId(parentOrderId),
+      type: 'add-on', // Marca como añadido
+      isAddOn: true,   // Flag para identificar añadidos
       createdBy: new ObjectId(userId),
+      total: products.reduce((sum, product) => sum + (product.price * product.quantity), 0),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    
     const result = await orders.insertOne(order);
-    res.status(201).json({ message: 'Add-on order created', orderId: result.insertedId });
+    
+    console.log(`✅ [BACKEND] Añadido creado para mesa ${mesa.number} por mozo ${userId}`);
+    
+    res.status(201).json({ 
+      message: 'Añadido creado exitosamente', 
+      orderId: result.insertedId,
+      order: order
+    });
   } catch (err) {
+    console.error('❌ [BACKEND] Error creando añadido:', err);
     res.status(500).json({ message: 'Error creating add-on order', error: err.message });
   }
 }
@@ -82,12 +89,62 @@ async function createOrder(req, res) {
     const orders = db.collection('orders');
     const cajas = db.collection('cajas');
     const {
-      products, // [{ productId, name, quantity, price }]
+      products, // [{ productId, name, quantity, price }] 
+      items, // alternativa para products (frontend puede usar cualquiera)
       table, // tableId or null
+      tableId, // alternativa para table
       type, // 'dine-in' or 'take-away'
     } = req.body;
     const userId = req.user._id; // From auth middleware
+    const userRole = req.user.role;
 
+    // Normalizar datos de entrada (soportar tanto products como items)
+    const orderProducts = products || (items && items.map(item => ({
+      productId: item.menuItemId || item.productId,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price
+    }))) || [];
+
+    // Normalizar tableId
+    const finalTableId = table || tableId;
+
+    // Si es un mozo, puede crear pedidos directamente para mesas asignadas
+    if (userRole === 'mozo') {
+      if (!finalTableId) {
+        return res.status(400).json({ message: 'Debe asignar una mesa para el pedido.' });
+      }
+
+      const mesas = db.collection('tables');
+      const mesaObjId = new ObjectId(finalTableId);
+      const mesa = await mesas.findOne({ _id: mesaObjId });
+      
+      if (!mesa) {
+        return res.status(400).json({ message: 'Mesa no encontrada.' });
+      }
+
+      // Verificar que el mozo tenga la mesa asignada
+      if (!mesa.waiterId || String(mesa.waiterId) !== String(userId)) {
+        return res.status(403).json({ message: 'No tienes asignada esta mesa.' });
+      }
+
+      const order = {
+        products: orderProducts,
+        table: mesaObjId,
+        status: 'pending',
+        type: 'dine-in',
+        createdBy: new ObjectId(userId),
+        waiter: new ObjectId(userId),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const result = await orders.insertOne(order);
+      res.status(201).json({ message: 'Order created', orderId: result.insertedId });
+      return;
+    }
+
+    // Lógica original para cajeros
     // Validar que el cajero tenga una caja abierta y confirmada
     const caja = await cajas.findOne({ assignedTo: new ObjectId(userId), status: 'open', confirmed: true });
     if (!caja) {
@@ -96,11 +153,11 @@ async function createOrder(req, res) {
 
     // Validar mesa si es dine-in
     if (type === 'dine-in') {
-      if (!table) {
+      if (!finalTableId) {
         return res.status(400).json({ message: 'Debe asignar una mesa para consumo en salón.' });
       }
       const mesas = db.collection('tables');
-      const mesaObjId = new ObjectId(table);
+      const mesaObjId = new ObjectId(finalTableId);
       const mesa = await mesas.findOne({ _id: mesaObjId });
       if (!mesa) {
         return res.status(400).json({ message: 'Mesa no encontrada.' });
@@ -111,9 +168,10 @@ async function createOrder(req, res) {
       // Marcar mesa como ocupada
       await mesas.updateOne({ _id: mesaObjId }, { $set: { status: 'occupied', updatedAt: new Date() } });
     }
+
     const order = {
-      products,
-      table: table ? new ObjectId(table) : null,
+      products: orderProducts,
+      table: finalTableId ? new ObjectId(finalTableId) : null,
       status: 'pending',
       type,
       createdBy: new ObjectId(userId),
@@ -123,6 +181,7 @@ async function createOrder(req, res) {
     const result = await orders.insertOne(order);
     res.status(201).json({ message: 'Order created', orderId: result.insertedId });
   } catch (err) {
+    console.error('Error creating order:', err);
     res.status(500).json({ message: 'Error creating order', error: err.message });
   }
 }
@@ -268,8 +327,17 @@ async function getOrderHistory(req, res) {
     const db = getDB();
     const orders = db.collection('orders');
     
+    // Construir filtro para la consulta
+    const filter = {};
+    
+    // Si se especifica waiterId, filtrar por mozo
+    const { waiterId } = req.query;
+    if (waiterId) {
+      filter.createdBy = new ObjectId(waiterId);
+    }
+    
     // Obtener pedidos ordenados por fecha (más recientes primero)
-    const pedidos = await orders.find({})
+    const pedidos = await orders.find(filter)
       .sort({ createdAt: -1 })
       .limit(100) // Limitar a 100 pedidos más recientes
       .toArray();

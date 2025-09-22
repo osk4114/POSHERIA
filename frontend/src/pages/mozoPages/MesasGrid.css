@@ -1,0 +1,130 @@
+.mesas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin: 30px 0;
+}
+.mesa-card {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 24px 16px;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  min-height: 140px;
+}
+
+.mesa-card.clickable:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.mesa-card.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.mesa-card.my-table {
+  border-color: #ffd700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 2px rgba(255, 215, 0, 0.3);
+}
+
+.mesa-numero {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.mesa-estado {
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.mesa-capacidad {
+  font-size: 1rem;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+
+.mesa-action {
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.mesas-loading, .mesas-error {
+  text-align: center;
+  margin: 40px 0;
+  font-size: 1.3rem;
+  color: #555;
+}
+
+.mesas-error {
+  color: #e53e3e;
+  background-color: #fed7d7;
+  border: 1px solid #fc8181;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .mesas-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
+  }
+  
+  .mesa-card {
+    padding: 20px 12px;
+    min-height: 120px;
+  }
+  
+  .mesa-numero {
+    font-size: 1.3rem;
+  }
+  
+  .mesa-estado {
+    font-size: 1rem;
+  }
+  
+  .mesa-capacidad {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mesas-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .mesa-card {
+    padding: 16px 8px;
+    min-height: 110px;
+  }
+  
+  .mesa-numero {
+    font-size: 1.2rem;
+  }
+  
+  .mesa-estado, .mesa-capacidad {
+    font-size: 0.85rem;
+  }
+  
+  .mesa-action {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+  }
+}

@@ -298,7 +298,37 @@ body {
 	transition: all 0.3s ease;
 	width: 100%;
 	box-sizing: border-box;
+}
+
+/* Estilo especial para cuando MozoPage esté dentro del AdminPage */
+.admin-section .component-wrapper {
+	position: relative;
+}
+
+/* Hacer que el MozoPage dentro del admin ocupe solo el área de contenido */
+.admin-section .component-wrapper .mozo-container {
+	width: 100% !important;
+	height: 100% !important;
+	background: white;
 	overflow-x: hidden;
+	position: relative;
+}
+
+.admin-section .component-wrapper .mozo-main-content {
+	width: 100% !important;
+	height: 100% !important;
+	margin-left: 0 !important;
+}
+
+/* También deshabilitar hover effects del admin cuando mozo esté activo */
+body.mozo-page-active .admin-nav-btn:hover,
+body.mozo-page-active .admin-nav-btn,
+body.mozo-page-active .admin-section:hover {
+	background: none !important;
+	color: inherit !important;
+	border-left-color: inherit !important;
+	box-shadow: none !important;
+	transform: none !important;
 }
 
 .admin-section:hover {

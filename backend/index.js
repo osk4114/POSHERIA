@@ -21,9 +21,31 @@ const app = express();
 app.use(logger);
 app.use(express.json());
 
+// Detectar IP local automáticamente
+const os = require('os');
+const interfaces = os.networkInterfaces();
+let localIp = 'localhost';
+for (const name of Object.keys(interfaces)) {
+  for (const iface of interfaces[name]) {
+    if (iface.family === 'IPv4' && !iface.internal) {
+      localIp = iface.address;
+      break;
+    }
+  }
+}
+
 // Configuración de CORS para permitir peticiones desde el frontend
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+  const allowedOrigins = [
+    'http://localhost:3001',
+    `http://${localIp}:3001`
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -71,8 +93,10 @@ const { clearTokens } = require('./services/tokenStore');
 
 connectDB()
   .then(() => {
-    const server = app.listen(config.port, () => {
-      console.log(`Servidor backend escuchando en http://localhost:${config.port}`);
+    const server = app.listen(config.port, '0.0.0.0', () => {
+      console.log(`Servidor backend escuchando en http://${localIp}:${config.port}`);
+      console.log('Accede desde otros dispositivos usando esta IP en la red local.');
+      console.log(`CORS configurado para: localhost:3001 y ${localIp}:3001`);
     });
     // Inicializar socket.io y exponer globalmente para forceLogoutUser
     const io = setupSocket(server);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api';
 import { getUser, logout } from '../../auth';
 import { connectSocket, onForceLogout } from '../../socket';
@@ -6,161 +6,58 @@ import './KitchenPage.css';
 
 const KitchenPage = () => {
   const user = getUser();
-  const [socketError, setSocketError] = useState(null);
   const [pedidos, setPedidos] = useState([]);
   const [statusMsg, setStatusMsg] = useState(null);
   const [error, setError] = useState(null);
   const [mesas, setMesas] = useState([]);
-  const [socket, setSocket] = useState(null);
   const [loading, setLoading] = useState(false);
   const [estadisticas, setEstadisticas] = useState({});
-  const [filtroEstado, setFiltroEstado] = useState('todos');
-  const [filtroPrioridad, setFiltroPrioridad] = useState('todos');
-  const [ordenamiento, setOrdenamiento] = useState('tiempo');
-  const [notasModal, setNotasModal] = useState({ show: false, pedidoId: null, notas: '' });
 
-  // Referencias para throttling
-  const lastFetchTime = useRef({
-    pedidos: 0,
-    estadisticas: 0,
-    mesas: 0
-  });
-  const THROTTLE_DELAY = 1000; // 1 segundo de delay mínimo entre llamadas
-
-  // Función para reproducir sonido de notificación
-  const playNotificationSound = () => {
-    try {
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmQgB...'); // Beep sound in base64
-      audio.play().catch(e => console.log('No se pudo reproducir el sonido:', e));
-    } catch (e) {
-      console.log('Audio no disponible');
-    }
-  };
-
-  // Obtener pedidos activos con información enriquecida - CON THROTTLING
+  // Obtener pedidos activos
   const fetchPedidos = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastFetchTime.current.pedidos < THROTTLE_DELAY) {
-      console.log('🚫 fetchPedidos throttled - demasiado rápido');
-      return;
-    }
-    lastFetchTime.current.pedidos = now;
-
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/api/kitchen/orders');
+      const response = await api.get('/api/orders');
+      const data = Array.isArray(response.data) ? response.data : [];
       
-      // Validar que la respuesta sea un array
-      const pedidosData = Array.isArray(response.data) ? response.data : [];
+      // Filtrar solo pedidos activos (no delivered/cancelled)
+      const pedidosActivos = data.filter(p => 
+        ['pending', 'preparing', 'ready'].includes(p.status)
+      );
       
-      // Validar estructura de cada pedido
-      const pedidosValidados = pedidosData.map(pedido => ({
-        ...pedido,
-        items: Array.isArray(pedido.items) ? pedido.items : [],
-        total: typeof pedido.total === 'number' ? pedido.total : 0,
-        prioridad: pedido.prioridad || 'normal',
-        createdAt: pedido.createdAt || new Date().toISOString()
-      }));
-      
-      setPedidos(pedidosValidados);
+      setPedidos(pedidosActivos);
+      console.log('✅ Pedidos cargados:', pedidosActivos.length);
     } catch (err) {
-      console.error('[KitchenPage] Error fetching orders:', err);
-      const errorMsg = err.response?.data?.message || 'Error al cargar pedidos';
-      setError(errorMsg);
+      console.error('❌ Error al cargar pedidos:', err);
+      setError('Error al cargar los pedidos');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Obtener estadísticas - CON THROTTLING
+  // Obtener estadísticas
   const fetchEstadisticas = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastFetchTime.current.estadisticas < THROTTLE_DELAY) {
-      console.log('🚫 fetchEstadisticas throttled - demasiado rápido');
-      return;
-    }
-    lastFetchTime.current.estadisticas = now;
-
     try {
-      const response = await api.get('/api/kitchen/stats');
+      const response = await api.get('/api/orders/stats');
       setEstadisticas(response.data || {});
     } catch (err) {
-      console.error('[KitchenPage] Error fetching stats:', err);
+      console.error('Error al cargar estadísticas:', err);
     }
   }, []);
 
-  // Obtener mesas - CON THROTTLING
+  // Obtener mesas
   const fetchMesas = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastFetchTime.current.mesas < THROTTLE_DELAY) {
-      console.log('🚫 fetchMesas throttled - demasiado rápido');
-      return;
-    }
-    lastFetchTime.current.mesas = now;
-
     try {
       const response = await api.get('/api/tables');
       setMesas(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      console.error('[KitchenPage] Error fetching tables:', err);
-      setMesas([]);
+      console.error('Error al cargar mesas:', err);
     }
   }, []);
 
-  // Función para obtener pedidos filtrados y ordenados
-  const getPedidosFiltrados = () => {
-    if (!Array.isArray(pedidos)) {
-      return [];
-    }
-    
-    let pedidosFiltrados = [...pedidos];
-    
-    // Filtrar por estado
-    if (filtroEstado !== 'todos') {
-      pedidosFiltrados = pedidosFiltrados.filter(p => p.status === filtroEstado);
-    }
-    
-    // Filtrar por prioridad
-    if (filtroPrioridad !== 'todos') {
-      pedidosFiltrados = pedidosFiltrados.filter(p => {
-        const timeElapsedMinutes = Math.floor((new Date() - new Date(p.createdAt)) / (1000 * 60));
-        
-        if (filtroPrioridad === 'alta') return timeElapsedMinutes > 45;
-        if (filtroPrioridad === 'media') return timeElapsedMinutes >= 25 && timeElapsedMinutes <= 45;
-        if (filtroPrioridad === 'normal') return timeElapsedMinutes < 25;
-        
-        return true;
-      });
-    }
-    
-    // Ordenar
-    pedidosFiltrados.sort((a, b) => {
-      if (ordenamiento === 'tiempo') {
-        return new Date(a.createdAt) - new Date(b.createdAt);
-      } else if (ordenamiento === 'prioridad') {
-        const getPriorityScore = (pedido) => {
-          const timeElapsed = Math.floor((new Date() - new Date(pedido.createdAt)) / (1000 * 60));
-          if (timeElapsed > 45) return 3; // Alta
-          if (timeElapsed >= 25) return 2; // Media
-          return 1; // Normal
-        };
-        return getPriorityScore(b) - getPriorityScore(a);
-      } else if (ordenamiento === 'mesa') {
-        const getMesaNumber = (pedido) => {
-          const mesa = mesas.find(m => m._id === pedido.tableId);
-          return mesa ? mesa.number : 999;
-        };
-        return getMesaNumber(a) - getMesaNumber(b);
-      }
-      return 0;
-    });
-    
-    return pedidosFiltrados;
-  };
-
-  // Función para cambiar estado de pedido
-  const cambiarEstado = async (pedidoId, nuevoEstado, notas = '') => {
+  // Cambiar estado de pedido
+  const cambiarEstado = async (pedidoId, nuevoEstado) => {
     if (!pedidoId || !nuevoEstado) {
       setStatusMsg('❌ Datos inválidos para cambiar estado');
       setTimeout(() => setStatusMsg(null), 3000);
@@ -169,32 +66,21 @@ const KitchenPage = () => {
 
     try {
       setStatusMsg('🔄 Actualizando estado...');
-
-      const updateData = { status: nuevoEstado };
-      if (notas.trim()) {
-        updateData.notes = notas.trim();
-      }
-
-      await api.patch(`/api/orders/${pedidoId}/status`, updateData);
+      
+      await api.patch(`/api/orders/${pedidoId}/status`, { status: nuevoEstado });
       
       setStatusMsg(`✅ Estado actualizado a: ${getStatusLabel(nuevoEstado)}`);
-      setTimeout(() => setStatusMsg(null), 5000);
-
-      // Reproducir sonido de confirmación
-      playNotificationSound();
-
+      setTimeout(() => setStatusMsg(null), 3000);
+      
       // Actualizar datos
       fetchPedidos();
       fetchEstadisticas();
       
-      // Cerrar modal de notas si estaba abierto
-      setNotasModal({ show: false, pedidoId: null, notas: '' });
-      
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Error al actualizar pedido';
+      console.error('Error al cambiar estado:', err);
+      const errorMsg = err.response?.data?.message || 'Error al actualizar estado';
       setStatusMsg(`❌ ${errorMsg}`);
       setTimeout(() => setStatusMsg(null), 5000);
-      console.error('Error updating order:', err);
     }
   };
 
@@ -203,9 +89,7 @@ const KitchenPage = () => {
     const labels = {
       'pending': 'Pendiente',
       'preparing': 'Preparando',
-      'ready': 'Listo',
-      'delivered': 'Entregado',
-      'cancelled': 'Cancelado'
+      'ready': 'Listo'
     };
     return labels[status] || status;
   };
@@ -216,146 +100,119 @@ const KitchenPage = () => {
     return mesa ? `Mesa ${mesa.number}` : 'Para llevar';
   };
 
-  // Formatear tiempo desde creación
+  // Formatear tiempo transcurrido
   const getTimeElapsed = (createdAt) => {
     const now = new Date();
     const created = new Date(createdAt);
-    const diffMinutes = Math.floor((now - created) / (1000 * 60));
+    const diffMs = now - created;
+    const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMinutes < 1) return 'Recién creado';
-    if (diffMinutes === 1) return '1 min';
-    if (diffMinutes < 60) return `${diffMinutes} min`;
+    if (diffMins < 1) return 'Recién creado';
+    if (diffMins < 60) return `${diffMins} min`;
     
-    const hours = Math.floor(diffMinutes / 60);
-    const remainingMinutes = diffMinutes % 60;
-    
-    if (hours === 1) return remainingMinutes > 0 ? `1h ${remainingMinutes}min` : '1h';
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+    const diffHours = Math.floor(diffMins / 60);
+    const remainingMins = diffMins % 60;
+    return `${diffHours}h ${remainingMins}m`;
   };
 
-  // Obtener clase de prioridad basada en tiempo y estado
-  const getPriorityClass = (pedido) => {
-    const timeElapsedMinutes = Math.floor((new Date() - new Date(pedido.createdAt)) / (1000 * 60));
-    
-    if (pedido.status === 'ready' || pedido.status === 'delivered') {
-      return 'completed';
-    }
-    
-    if (timeElapsedMinutes > 45) return 'urgent';
-    if (timeElapsedMinutes >= 25) return 'medium';
-    return 'normal';
-  };
-
-  // Obtener tiempo con indicador de estado
-  const getTimeElapsedWithStatus = (createdAt) => {
-    const timeElapsed = getTimeElapsed(createdAt);
-    const timeElapsedMinutes = Math.floor((new Date() - new Date(createdAt)) / (1000 * 60));
-    
-    if (timeElapsedMinutes > 45) return `🔴 ${timeElapsed}`;
-    if (timeElapsedMinutes >= 25) return `🟡 ${timeElapsed}`;
-    return `🟢 ${timeElapsed}`;
-  };
-
-  // Configuración de Socket.IO - OPTIMIZADO
+  // Configurar socket para tiempo real
   useEffect(() => {
-    let socketInstance = null;
+    let socket = null;
+    let forceLogoutCleanup = null;
     
-    const initializeSocket = async () => {
+    if (user && user._id) {
+      console.log('🔌 KitchenPage: Iniciando conexión socket - Usuario:', user._id, 'Rol:', user.role);
+      
       try {
-        if (!user?.token) {
-          console.log('[KitchenPage] No token available, skipping socket connection');
-          return;
-        }
-
-        // Evitar múltiples conexiones
-        if (socket) {
-          console.log('[KitchenPage] Socket ya existe, omitiendo conexión duplicada');
-          return;
-        }
-
-        socketInstance = await connectSocket();
-        setSocket(socketInstance);
-        setSocketError(null);
-
-        // Configurar eventos específicos para cocina - CON THROTTLING
-        socketInstance.on('newOrder', (orderData) => {
-          console.log('[KitchenPage] Nueva orden recibida:', orderData);
+        socket = connectSocket(user._id);
+        
+        socket.on('newOrder', (data) => {
+          console.log('🔔 Nueva orden recibida:', data);
           setStatusMsg('🔔 Nueva orden recibida');
           setTimeout(() => setStatusMsg(null), 3000);
-          playNotificationSound();
-          // Throttling se maneja en las funciones fetch
           fetchPedidos();
           fetchEstadisticas();
         });
 
-        socketInstance.on('orderStatusChanged', (data) => {
-          console.log('[KitchenPage] Estado de orden cambió:', data);
-          // Throttling se maneja en las funciones fetch
+        socket.on('orderUpdated', (data) => {
+          console.log('📝 Orden actualizada:', data);
           fetchPedidos();
           fetchEstadisticas();
         });
 
-        socketInstance.on('tablesUpdated', () => {
-          console.log('[KitchenPage] Mesas actualizadas');
-          // Throttling se maneja en las funciones fetch
-          fetchMesas();
-        });
-
-        // Manejo de errores de conexión
-        socketInstance.on('connect_error', (error) => {
-          console.error('[KitchenPage] Socket connection error:', error);
-          setSocketError('Error de conexión. Los datos pueden no estar actualizados.');
-        });
-
-        socketInstance.on('disconnect', (reason) => {
-          console.log('[KitchenPage] Socket disconnected:', reason);
-          if (reason === 'io server disconnect') {
-            setSocketError('Desconectado del servidor. Reconectando...');
-          }
-        });
-
-        socketInstance.on('reconnect', () => {
-          console.log('[KitchenPage] Socket reconnected');
-          setSocketError(null);
-          fetchPedidos();
-          fetchEstadisticas();
-        });
-
+        // SOLO configurar force-logout para usuarios de cocina, no para admin
+        if (user.role === 'cocina') {
+          console.log('🔒 KitchenPage: Configurando force-logout para usuario de cocina');
+          onForceLogout(() => {
+            console.log('⚠️ KitchenPage: Force logout ejecutado para usuario cocina');
+            logout(() => window.location.reload());
+          });
+        } else {
+          console.log('👑 KitchenPage: Usuario admin - Saltando configuración de force-logout');
+        }
+        
       } catch (error) {
-        console.error('[KitchenPage] Socket setup error:', error);
-        setSocketError('No se pudo conectar al servidor en tiempo real');
+        console.error('❌ KitchenPage: Error al configurar socket:', error);
       }
-    };
-
-    initializeSocket();
-
-    // Configurar logout forzado
-    const unsubscribeForceLogout = onForceLogout(() => {
-      logout(() => window.location.reload());
-    });
+    }
 
     return () => {
-      if (socketInstance) {
-        socketInstance.disconnect();
+      if (socket) {
+        console.log('🧹 KitchenPage: Limpiando listeners de socket');
+        socket.off('newOrder');
+        socket.off('orderUpdated');
+        // Solo limpiar force-logout si se configuró
+        if (user?.role === 'cocina') {
+          socket.off('force-logout');
+        }
+        
+        // Solo desconectar si es usuario de cocina; admin puede tener socket compartido
+        if (user?.role === 'cocina') {
+          console.log('🔌 KitchenPage: Desconectando socket (usuario cocina)');
+          socket.disconnect();
+        } else {
+          console.log('👑 KitchenPage: Manteniendo socket activo (usuario admin)');
+        }
       }
-      unsubscribeForceLogout();
     };
-  }, [user?.token]);
+  }, [user?._id, user?.role]); // Importante: incluir role en dependencias
 
-  // Cargar datos iniciales - SIMPLIFICADO
+  // Cargar datos iniciales
   useEffect(() => {
-    const shouldFetch = user && (user.role === 'cocina' || user.role === 'admin');
-    
-    if (shouldFetch) {
-      console.log('[KitchenPage] Cargando datos iniciales para:', user.role);
+    if (user && (user.role === 'cocina' || user.role === 'admin')) {
+      console.log('📊 KitchenPage: Cargando datos iniciales para:', user.role);
       fetchPedidos();
       fetchEstadisticas();
       fetchMesas();
+      
+      // Actualizar cada 30 segundos
+      const interval = setInterval(() => {
+        fetchPedidos();
+        fetchEstadisticas();
+      }, 30000);
+      
+      return () => clearInterval(interval);
     }
-  }, [user?.id, user?.role]); // Solo user ID y role como dependencias
+  }, [user?.role]); // Solo depender del rol del usuario
 
-  // Verificar acceso - Permitir administradores y personal de cocina
-  if (!user || (user.role !== 'cocina' && user.role !== 'admin')) {
+  // Verificar acceso
+  if (!user) {
+    console.log('⚠️ KitchenPage: No hay usuario logueado');
+    return (
+      <div className="kitchen-access-denied">
+        <div className="access-denied-content">
+          <h2>🚫 Acceso Denegado</h2>
+          <p>No hay usuario logueado</p>
+          <button onClick={() => logout(() => window.location.reload())}>
+            Ir al Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== 'cocina' && user.role !== 'admin') {
+    console.log('⚠️ KitchenPage: Usuario sin permisos:', user.role);
     return (
       <div className="kitchen-access-denied">
         <div className="access-denied-content">
@@ -371,13 +228,15 @@ const KitchenPage = () => {
     );
   }
 
+  console.log('✅ KitchenPage: Usuario autorizado:', user.name, 'Rol:', user.role);
+
   return (
     <div className="kitchen-dashboard">
-      {/* Header principal con título y usuario */}
+      {/* Header principal */}
       <div className="kitchen-main-header">
         <div className="header-title">
           <h1>🍗 Dashboard de Cocina</h1>
-          <div className="header-subtitle">Panel de gestión para cocina - Tiempo real</div>
+          <div className="header-subtitle">Gestión de pedidos en tiempo real</div>
         </div>
         <div className="user-info">
           <span className="user-role">👤 {user.name}</span>
@@ -387,297 +246,177 @@ const KitchenPage = () => {
         </div>
       </div>
 
-      {/* Contenedor principal dividido en dos columnas */}
-      <div className="kitchen-dashboard-container">
-        {/* Panel de estadísticas principal */}
-        <div className="stats-dashboard">
-          <h2 className="stats-title">📊 Estadísticas en Tiempo Real</h2>
-          <div className="stats-grid">
-            <div className="stat-card pending">
-              <div className="stat-icon">⏳</div>
-              <div className="stat-content">
-                <span className="stat-number">{estadisticas.pending || 0}</span>
-                <span className="stat-label">Pendientes</span>
-              </div>
-            </div>
-            <div className="stat-card preparing">
-              <div className="stat-icon">👨‍🍳</div>
-              <div className="stat-content">
-                <span className="stat-number">{estadisticas.preparing || 0}</span>
-                <span className="stat-label">Preparando</span>
-              </div>
-            </div>
-            <div className="stat-card ready">
-              <div className="stat-icon">✅</div>
-              <div className="stat-content">
-                <span className="stat-number">{estadisticas.ready || 0}</span>
-                <span className="stat-label">Listos</span>
-              </div>
-            </div>
-            <div className="stat-card delivered">
-              <div className="stat-icon">🚚</div>
-              <div className="stat-content">
-                <span className="stat-number">{estadisticas.delivered || 0}</span>
-                <span className="stat-label">Entregados</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Panel de filtros separado */}
-        <div className="filters-dashboard">
-          <h3>🔍 Filtros y Ordenamiento</h3>
-          <div className="filters-content">
-            <div className="filter-row">
-              <div className="filter-group">
-                <label>📋 Estado:</label>
-                <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
-                  <option value="todos">🔍 Todos ({pedidos.length})</option>
-                  <option value="pending">⏳ Pendientes ({pedidos.filter(p => p.status === 'pending').length})</option>
-                  <option value="preparing">👨‍🍳 Preparando ({pedidos.filter(p => p.status === 'preparing').length})</option>
-                  <option value="ready">✅ Listos ({pedidos.filter(p => p.status === 'ready').length})</option>
-                </select>
-              </div>
-
-              <div className="filter-group">
-                <label>🚨 Prioridad:</label>
-                <select value={filtroPrioridad} onChange={(e) => setFiltroPrioridad(e.target.value)}>
-                  <option value="todos">🔍 Todas</option>
-                  <option value="alta">🔴 Alta (&gt;45min)</option>
-                  <option value="media">🟡 Media (25-45min)</option>
-                  <option value="normal">🟢 Normal (&lt;25min)</option>
-                </select>
-              </div>
-
-              <div className="filter-group">
-                <label>📊 Ordenar por:</label>
-                <select value={ordenamiento} onChange={(e) => setOrdenamiento(e.target.value)}>
-                  <option value="tiempo">⏰ Tiempo de creación</option>
-                  <option value="prioridad">🚨 Prioridad</option>
-                  <option value="mesa">🪑 Mesa</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="filter-actions">
-              <button 
-                onClick={() => {
-                  fetchPedidos();
-                  fetchEstadisticas();
-                }}
-                className="btn-refresh"
-                disabled={loading}
-                title="Actualizar datos"
-              >
-                {loading ? '🔄' : '🔄'} Actualizar
-              </button>
-              
-              <button 
-                onClick={() => {
-                  setFiltroEstado('todos');
-                  setFiltroPrioridad('todos');
-                }} 
-                className="btn-reset"
-                title="Resetear filtros"
-              >
-                🗑️ Reset
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Notificaciones y errores */}
-      {socketError && (
-        <div className="notification error">
-          ⚠️ {socketError}
-        </div>
-      )}
-
+      {/* Mensaje de estado */}
       {statusMsg && (
-        <div className="notification success">
+        <div className="status-message">
           {statusMsg}
         </div>
       )}
 
+      {/* Error */}
       {error && (
-        <div className="notification error">
-          ❌ {error}
+        <div className="error-message">
+          {error}
+          <button onClick={() => { setError(null); fetchPedidos(); }}>
+            Reintentar
+          </button>
         </div>
       )}
 
-      {/* Panel de alertas urgentes */}
-      {pedidos.filter(p => {
-        const timeElapsed = Math.floor((new Date() - new Date(p.createdAt)) / (1000 * 60));
-        return timeElapsed > 45 && p.status !== 'ready' && p.status !== 'delivered';
-      }).length > 0 && (
-        <div className="urgent-alerts-panel">
-          <div className="urgent-header">
-            <h3>🚨 ¡PEDIDOS URGENTES!</h3>
-            <span className="urgent-count">
-              {pedidos.filter(p => {
-                const timeElapsed = Math.floor((new Date() - new Date(p.createdAt)) / (1000 * 60));
-                return timeElapsed > 45 && p.status !== 'ready' && p.status !== 'delivered';
-              }).length} pedido(s)
-            </span>
+      {/* Panel de estadísticas compacto */}
+      <div className="kitchen-stats-bar">
+        <div className="stat-item pending">
+          <span className="stat-icon">⏳</span>
+          <div>
+            <span className="stat-number">{estadisticas.pending || 0}</span>
+            <span className="stat-label">Entrantes</span>
           </div>
-          <div className="urgent-list">
-            {pedidos.filter(p => {
-              const timeElapsed = Math.floor((new Date() - new Date(p.createdAt)) / (1000 * 60));
-              return timeElapsed > 45 && p.status !== 'ready' && p.status !== 'delivered';
-            }).map(pedido => (
-              <div key={pedido._id} className="urgent-item">
-                <span>#{pedido._id.slice(-4)}</span>
-                <span>{getMesaInfo(pedido.tableId)}</span>
-                <span>{getTimeElapsedWithStatus(pedido.createdAt)}</span>
+        </div>
+        <div className="stat-item preparing">
+          <span className="stat-icon">👨‍🍳</span>
+          <div>
+            <span className="stat-number">{estadisticas.preparing || 0}</span>
+            <span className="stat-label">Preparando</span>
+          </div>
+        </div>
+        <div className="stat-item ready">
+          <span className="stat-icon">✅</span>
+          <div>
+            <span className="stat-number">{estadisticas.ready || 0}</span>
+            <span className="stat-label">Listos</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Layout de 3 columnas para pedidos */}
+      <div className="kitchen-columns">
+        {/* Columna 1: Pedidos Entrantes */}
+        <div className="kitchen-column pending-column">
+          <div className="column-header">
+            <h3>⏳ Pedidos Entrantes</h3>
+            <span className="column-count">{pedidos.filter(p => p.status === 'pending').length}</span>
+          </div>
+          <div className="column-content">
+            {pedidos.filter(p => p.status === 'pending').map(pedido => (
+              <div key={pedido._id} className={`order-card ${pedido.type === 'add-on' ? 'addon-card' : ''}`}>
+                <div className="order-header">
+                  <div className="order-id">
+                    <span className="order-number">#{pedido._id.slice(-4)}</span>
+                    {pedido.type === 'add-on' && <span className="addon-badge">➕ AÑADIDO</span>}
+                  </div>
+                  <div className="order-info">
+                    <span className="order-mesa">{getMesaInfo(pedido.tableId)}</span>
+                    <span className="time-elapsed">{getTimeElapsed(pedido.createdAt)}</span>
+                  </div>
+                </div>
+
+                <div className="order-items">
+                  {Array.isArray(pedido.items) && pedido.items.map((item, index) => (
+                    <div key={index} className="order-item">
+                      <span className="item-quantity">{item.quantity}x</span>
+                      <span className="item-name">{item.name || 'Producto sin nombre'}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-actions">
+                  <button 
+                    onClick={() => cambiarEstado(pedido._id, 'preparing')}
+                    className="btn-action btn-start"
+                    disabled={loading}
+                  >
+                    👨‍🍳 Iniciar Preparación
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
-      )}
 
-      {/* Contenido principal */}
-      <div className="kitchen-content">
-        {loading && pedidos.length === 0 ? (
-          <div className="loading">
-            <div className="loading-spinner"></div>
-            <p>Cargando pedidos...</p>
+        {/* Columna 2: Preparando */}
+        <div className="kitchen-column preparing-column">
+          <div className="column-header">
+            <h3>👨‍🍳 Preparando</h3>
+            <span className="column-count">{pedidos.filter(p => p.status === 'preparing').length}</span>
           </div>
-        ) : (
-          <>
-            {getPedidosFiltrados().length === 0 ? (
-              <div className="no-orders">
-                <div className="no-orders-icon">🍽️</div>
-                {pedidos.length === 0 ? (
-                  <>
-                    <h3>🎉 ¡Excelente! No hay pedidos pendientes</h3>
-                    <p>La cocina está al día. Los nuevos pedidos aparecerán aquí automáticamente</p>
-                    <div className="stats-summary">
-                      <span>📊 Total de pedidos hoy: {estadisticas.pedidosHoy || 0}</span>
-                      <span>💰 Ventas del día: S/ {(estadisticas.ventasHoy || 0).toFixed(2)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3>🔍 No hay pedidos con los filtros seleccionados</h3>
-                    <p>Prueba cambiando los filtros o actualiza la página</p>
-                    <div className="filter-suggestion">
-                      <button onClick={() => {
-                        setFiltroEstado('todos');
-                        setFiltroPrioridad('todos');
-                      }} className="btn-reset-filters">
-                        🔄 Resetear Filtros
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="orders-grid">
-                {getPedidosFiltrados().map(pedido => (
-                  <div key={pedido._id} className={`order-card ${getPriorityClass(pedido)} ${pedido.status}`}>
-                    <div className="order-header">
-                      <div className="order-id">
-                        <span className="order-number">#{pedido._id.slice(-4)}</span>
-                        <span className="order-mesa">{getMesaInfo(pedido.tableId)}</span>
-                      </div>
-                      <div className="order-time">
-                        <span className="time-elapsed">{getTimeElapsedWithStatus(pedido.createdAt)}</span>
-                        <span className="order-status status-badge">{getStatusLabel(pedido.status)}</span>
-                      </div>
-                    </div>
-
-                    <div className="order-items">
-                      {Array.isArray(pedido.items) && pedido.items.map((item, index) => (
-                        <div key={index} className="order-item">
-                          <span className="item-quantity">{item.quantity}x</span>
-                          <span className="item-name">{item.name || 'Producto sin nombre'}</span>
-                          {item.notes && (
-                            <span className="item-notes">💬 {item.notes}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {pedido.notes && (
-                      <div className="order-notes">
-                        <strong>📝 Notas:</strong> {pedido.notes}
-                      </div>
-                    )}
-
-                    <div className="order-total">
-                      <span className="total-label">Total:</span>
-                      <span className="total-amount">S/ {(pedido.total || 0).toFixed(2)}</span>
-                    </div>
-
-                    <div className="order-actions">
-                      {pedido.status === 'pending' && (
-                        <button 
-                          onClick={() => setNotasModal({ show: true, pedidoId: pedido._id, notas: '' })}
-                          className="btn-action btn-preparing"
-                        >
-                          👨‍🍳 Iniciar Preparación
-                        </button>
-                      )}
-                      
-                      {pedido.status === 'preparing' && (
-                        <button 
-                          onClick={() => cambiarEstado(pedido._id, 'ready')}
-                          className="btn-action btn-ready"
-                        >
-                          ✅ Marcar como Listo
-                        </button>
-                      )}
-                      
-                      {pedido.status === 'ready' && (
-                        <button 
-                          onClick={() => cambiarEstado(pedido._id, 'delivered')}
-                          className="btn-action btn-delivered"
-                        >
-                          🚚 Entregado
-                        </button>
-                      )}
-                    </div>
+          <div className="column-content">
+            {pedidos.filter(p => p.status === 'preparing').map(pedido => (
+              <div key={pedido._id} className={`order-card ${pedido.type === 'add-on' ? 'addon-card' : ''}`}>
+                <div className="order-header">
+                  <div className="order-id">
+                    <span className="order-number">#{pedido._id.slice(-4)}</span>
+                    {pedido.type === 'add-on' && <span className="addon-badge">➕ AÑADIDO</span>}
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                  <div className="order-info">
+                    <span className="order-mesa">{getMesaInfo(pedido.tableId)}</span>
+                    <span className="time-elapsed">{getTimeElapsed(pedido.createdAt)}</span>
+                  </div>
+                </div>
 
-      {/* Modal para notas */}
-      {notasModal.show && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Agregar Notas al Pedido</h3>
-            <textarea
-              value={notasModal.notas}
-              onChange={(e) => setNotasModal({ ...notasModal, notas: e.target.value })}
-              placeholder="Escribir notas especiales para este pedido..."
-              rows="4"
-            />
-            <div className="modal-actions">
-              <button 
-                onClick={() => {
-                  cambiarEstado(notasModal.pedidoId, 'preparing', notasModal.notas);
-                  fetchPedidos();
-                  fetchEstadisticas();
-                }}
-                className="btn-confirm"
-              >
-                💾 Guardar y Continuar
-              </button>
-              <button 
-                onClick={() => setNotasModal({ show: false, pedidoId: null, notas: '' })}
-                className="btn-cancel"
-              >
-                ❌ Cancelar
-              </button>
-            </div>
+                <div className="order-items">
+                  {Array.isArray(pedido.items) && pedido.items.map((item, index) => (
+                    <div key={index} className="order-item">
+                      <span className="item-quantity">{item.quantity}x</span>
+                      <span className="item-name">{item.name || 'Producto sin nombre'}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-actions">
+                  <button 
+                    onClick={() => cambiarEstado(pedido._id, 'ready')}
+                    className="btn-action btn-ready"
+                    disabled={loading}
+                  >
+                    ✅ Marcar Listo
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* Columna 3: Listos */}
+        <div className="kitchen-column ready-column">
+          <div className="column-header">
+            <h3>✅ Pedidos Listos</h3>
+            <span className="column-count">{pedidos.filter(p => p.status === 'ready').length}</span>
+          </div>
+          <div className="column-content">
+            {pedidos.filter(p => p.status === 'ready').map(pedido => (
+              <div key={pedido._id} className={`order-card ${pedido.type === 'add-on' ? 'addon-card' : ''}`}>
+                <div className="order-header">
+                  <div className="order-id">
+                    <span className="order-number">#{pedido._id.slice(-4)}</span>
+                    {pedido.type === 'add-on' && <span className="addon-badge">➕ AÑADIDO</span>}
+                  </div>
+                  <div className="order-info">
+                    <span className="order-mesa">{getMesaInfo(pedido.tableId)}</span>
+                    <span className="time-elapsed">{getTimeElapsed(pedido.createdAt)}</span>
+                  </div>
+                </div>
+
+                <div className="order-items">
+                  {Array.isArray(pedido.items) && pedido.items.map((item, index) => (
+                    <div key={index} className="order-item">
+                      <span className="item-quantity">{item.quantity}x</span>
+                      <span className="item-name">{item.name || 'Producto sin nombre'}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-total">
+                  <span className="total-amount">S/ {(pedido.total || 0).toFixed(2)}</span>
+                </div>
+
+                <div className="ready-indicator">
+                  🔔 Listo para entregar
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

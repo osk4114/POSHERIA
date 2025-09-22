@@ -1,0 +1,1184 @@
+﻿/* === ESTILOS PARA PANEL DEL MOZO === */
+.mozo-page {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #2c1810 0%, #8b4513 30%, #cd853f 100%);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: #2c1810;
+  flex-direction: column;
+  position: relative;
+}
+
+.mozo-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(44, 24, 16, 0.1), rgba(205, 133, 63, 0.05));
+  z-index: 0;
+}
+
+.mozo-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* === HEADER === */
+.page-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2c1810 100%);
+  padding: 2rem 2.5rem;
+  border-bottom: 3px solid #cd853f;
+  box-shadow: 0 8px 32px rgba(205, 133, 63, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 0 0 0 0;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #cd853f;
+  text-shadow: 2px 2px 8px rgba(205, 133, 63, 0.5);
+  letter-spacing: 1px;
+}
+
+.user-info {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.user-info span {
+  font-weight: 700;
+  color: #f4e4bc;
+  padding: 0.75rem 1.5rem;
+  background: rgba(205, 133, 63, 0.2);
+  border-radius: 25px;
+  border: 2px solid #cd853f;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* === TABS === */
+.tab-navigation {
+  display: flex;
+  background: linear-gradient(135deg, #2c1810 0%, #1a1a1a 100%);
+  border-radius: 15px;
+  padding: 1rem;
+  margin: 2rem 2.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  border: 2px solid #cd853f;
+}
+
+/* Estructura específica del componente MozoPage */
+/* === LAYOUT PRINCIPAL === */
+.mozo-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, 
+    rgba(44, 24, 16, 0.95) 0%, 
+    rgba(139, 69, 19, 0.95) 50%, 
+    rgba(205, 133, 63, 0.85) 100%);
+  color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.mozo-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(44, 24, 16, 0.1), rgba(205, 133, 63, 0.05));
+  z-index: 0;
+}
+
+.mozo-main-content {
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  width: 100%;
+}
+
+/* Header del mozo con diseño profesional */
+.mozo-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2c1810 100%);
+  border-bottom: 3px solid #cd853f;
+  box-shadow: 0 8px 32px rgba(205, 133, 63, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.mozo-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 2.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.mozo-header-title {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #cd853f;
+  text-shadow: 2px 2px 8px rgba(205, 133, 63, 0.5);
+  letter-spacing: 1px;
+}
+
+.mozo-header-actions {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.mozo-welcome-badge {
+  font-weight: 700;
+  color: #f4e4bc;
+  padding: 0.75rem 1.5rem;
+  background: rgba(205, 133, 63, 0.2);
+  border-radius: 25px;
+  border: 2px solid #cd853f;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.mozo-logout-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #dc143c 0%, #ff6347 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid #ffb6c1;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.mozo-logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(220, 20, 60, 0.5);
+}
+
+/* Navegación de tabs mejorada */
+.mozo-tabs {
+  display: flex;
+  background: linear-gradient(135deg, #2c1810 0%, #1a1a1a 100%);
+  border-radius: 15px;
+  padding: 1rem;
+  margin: 2rem 2.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  border: 2px solid #cd853f;
+  gap: 0.5rem;
+}
+
+.mozo-tab {
+  flex: 1;
+  padding: 1.25rem 2rem;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #cd853f;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid transparent;
+}
+
+.mozo-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(205, 133, 63, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.mozo-tab:hover::before {
+  left: 100%;
+}
+
+.mozo-tab.active {
+  background: linear-gradient(135deg, #cd853f 0%, #daa520 100%);
+  color: #1a1a1a;
+  box-shadow: 0 8px 25px rgba(205, 133, 63, 0.5);
+  transform: translateY(-2px);
+  border: 2px solid #f4e4bc;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.mozo-tab:hover:not(.active) {
+  background: rgba(205, 133, 63, 0.15);
+  color: #f4e4bc;
+  transform: translateY(-1px);
+  border-color: rgba(205, 133, 63, 0.3);
+}
+
+/* Contenido principal */
+.mozo-content {
+  padding: 0 2.5rem 2.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Contenedor de mesas */
+.mesas-grid-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* === NOTIFICACIONES === */
+.notification {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  padding: 1.5rem 2rem;
+  border-radius: 15px;
+  font-weight: 800;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-width: 350px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  border: 2px solid transparent;
+  animation: slideInRestaurant 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.notification.success {
+  background: linear-gradient(135deg, #228b22 0%, #32cd32 100%);
+  color: white;
+  border-color: #90ee90;
+  box-shadow: 0 12px 40px rgba(34, 139, 34, 0.5);
+}
+
+.notification.error {
+  background: linear-gradient(135deg, #dc143c 0%, #ff6347 100%);
+  color: white;
+  border-color: #ffb6c1;
+  box-shadow: 0 12px 40px rgba(220, 20, 60, 0.5);
+}
+
+.notification button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.notification button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+/* === BOTÓN MOBILE MENU === */
+.mobile-menu-toggle {
+  display: none;
+  background: linear-gradient(135deg, #cd853f 0%, #daa520 100%);
+  border: 2px solid #f4e4bc;
+  color: #1a1a1a;
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 900;
+  box-shadow: 0 4px 15px rgba(205, 133, 63, 0.3);
+}
+
+.mobile-menu-toggle:hover {
+  background: linear-gradient(135deg, #daa520 0%, #ffd700 100%);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(205, 133, 63, 0.5);
+}
+
+/* === SIDEBAR (si existe) === */
+.mozo-sidebar {
+  width: 280px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2c1810 100%);
+  border-right: 3px solid #cd853f;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 10;
+  overflow-y: auto;
+  height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.mozo-sidebar-header {
+  padding: 2rem;
+  border-bottom: 2px solid #cd853f;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2c1810 100%);
+}
+
+.mozo-sidebar-header h2 {
+  color: #cd853f;
+  font-size: 1.8rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.mozo-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mozo-user-avatar {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #cd853f 0%, #daa520 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.5rem;
+  color: #1a1a1a;
+  border: 3px solid #f4e4bc;
+}
+
+.mozo-user-details {
+  flex: 1;
+}
+
+.mozo-user-name {
+  color: #f4e4bc;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.mozo-user-role {
+  color: #cd853f;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mozo-sidebar-nav {
+  padding: 1rem 0;
+}
+
+.mozo-nav-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: none;
+  border: none;
+  color: #cd853f;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1rem;
+  border-left: 4px solid transparent;
+}
+
+.mozo-nav-btn:hover {
+  background: rgba(205, 133, 63, 0.15);
+  border-left-color: #cd853f;
+  color: #f4e4bc;
+}
+
+.mozo-nav-btn.active {
+  background: rgba(205, 133, 63, 0.2);
+  border-left-color: #daa520;
+  color: #f4e4bc;
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+}
+
+/* === RESPONSIVE === */
+/* Pantallas grandes - sidebar siempre visible */
+@media (min-width: 769px) {
+  .mobile-menu-toggle {
+    display: none;
+  }
+  
+  .mozo-sidebar {
+    position: relative;
+    left: 0 !important;
+    transform: none !important;
+  }
+  
+  .mozo-sidebar-overlay {
+    display: none;
+  }
+}
+
+/* === RESPONSIVE === */
+/* Desktop - sidebar siempre visible */
+@media (min-width: 769px) {
+  .mozo-sidebar {
+    position: relative;
+    left: 0 !important;
+    transform: translateX(0) !important;
+  }
+  
+  .mozo-main-content {
+    width: calc(100% - 300px);
+  }
+  
+  .mobile-menu-toggle {
+    display: none;
+  }
+  
+  .mozo-sidebar-overlay {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .mozo-sidebar {
+    width: 250px;
+  }
+  
+  .mozo-main-content {
+    width: calc(100% - 250px);
+  }
+  
+  .mozo-header-content {
+    padding: 1.5rem 2rem;
+  }
+  
+  .mesas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mozo-container {
+    flex-direction: row;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+  }
+  
+  .mozo-sidebar {
+    width: 100%;
+    max-width: 320px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: -100%;
+    transition: left 0.3s ease;
+    z-index: 100000;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+  
+  .mozo-sidebar.mobile-open {
+    left: 0;
+  }
+  
+  .mozo-main-content {
+    width: 100vw;
+    margin-left: 0;
+    position: relative;
+  }
+  
+  .mobile-menu-toggle {
+    display: block;
+  }
+  
+  .mozo-header-content {
+    padding: 1rem;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .mozo-header-title {
+    font-size: 1.8rem;
+    text-align: left;
+    flex: 1;
+  }
+  
+  .mozo-header-actions {
+    width: auto;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+  }
+  
+  .mozo-welcome-badge {
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .mozo-logout-btn {
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .mozo-tabs {
+    margin: 1rem;
+    flex-direction: row;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .mozo-tab {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    flex: 1;
+    text-align: center;
+  }
+  
+  .mozo-content {
+    padding: 0 1rem 1rem;
+  }
+  
+  .mesas-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .mesa-card {
+    padding: 1.25rem;
+    min-height: 180px;
+  }
+  
+  .mesa-number {
+    font-size: 1.8rem;
+  }
+  
+  .mesa-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .notification {
+    right: 1rem;
+    left: 1rem;
+    min-width: auto;
+    top: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mozo-header-content {
+    padding: 0.75rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .mozo-header-title {
+    font-size: 1.6rem;
+    text-align: center;
+  }
+  
+  .mozo-header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .mozo-welcome-badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .mozo-logout-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .mozo-tabs {
+    margin: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .mozo-tab {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .mozo-content {
+    padding: 0 0.75rem 0.75rem;
+  }
+  
+  .mesas-grid {
+    grid-template-columns: 1fr;
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .mesa-card {
+    padding: 1rem;
+    min-height: 160px;
+  }
+  
+  .mesa-number {
+    font-size: 1.6rem;
+  }
+  
+  .mozo-sidebar {
+    max-width: 280px;
+  }
+  
+  .mozo-sidebar-header {
+    padding: 1.5rem;
+  }
+  
+  .mozo-sidebar-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Overlay para móvil cuando sidebar está abierto */
+@media (max-width: 768px) {
+  .mozo-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999998;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .mozo-sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 1.25rem 2rem;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #cd853f;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tab-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(205, 133, 63, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.tab-btn:hover::before {
+  left: 100%;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #cd853f 0%, #daa520 100%);
+  color: #1a1a1a;
+  box-shadow: 0 8px 25px rgba(205, 133, 63, 0.5);
+  transform: translateY(-2px);
+  border: 2px solid #f4e4bc;
+}
+
+.tab-btn:hover:not(.active) {
+  background: rgba(205, 133, 63, 0.15);
+  color: #f4e4bc;
+  transform: translateY(-1px);
+}
+
+/* === GRID DE MESAS === */
+.mesas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+  padding: 2.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.mesa-card {
+  background: linear-gradient(145deg, #f4e4bc 0%, #ffffff 100%);
+  border: 3px solid #cd853f;
+  border-radius: 20px;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+}
+
+.mesa-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(205, 133, 63, 0.1) 0%, rgba(218, 165, 32, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mesa-card:hover::before {
+  opacity: 1;
+}
+
+.mesa-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 25px 60px rgba(139, 69, 19, 0.4);
+  border-color: #daa520;
+}
+
+.mesa-card.libre {
+  border-color: #228b22;
+  box-shadow: 0 8px 32px rgba(34, 139, 34, 0.3);
+  background: linear-gradient(145deg, #f0fff0 0%, #e6ffe6 100%);
+}
+
+.mesa-card.occupied {
+  border-color: #dc143c;
+  box-shadow: 0 8px 32px rgba(220, 20, 60, 0.3);
+  background: linear-gradient(145deg, #ffe4e1 0%, #ffd0d0 100%);
+}
+
+.mesa-card.limpiando {
+  border-color: #ff8c00;
+  box-shadow: 0 8px 32px rgba(255, 140, 0, 0.3);
+  background: linear-gradient(145deg, #fff8dc 0%, #ffe4b5 100%);
+}
+
+.mesa-card.mia {
+  border-color: #4169e1;
+  background: linear-gradient(145deg, #e6f3ff 0%, #cce7ff 100%);
+  box-shadow: 0 12px 40px rgba(65, 105, 225, 0.4);
+}
+
+.mesa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.mesa-number {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #2c1810;
+  text-shadow: 2px 2px 6px rgba(44, 24, 16, 0.3);
+  letter-spacing: 1px;
+}
+
+.mesa-status {
+  padding: 0.75rem 1.25rem;
+  border-radius: 25px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 2;
+  border: 2px solid transparent;
+}
+
+.mesa-status.libre {
+  background: linear-gradient(135deg, #228b22 0%, #32cd32 100%);
+  color: white;
+  border-color: #90ee90;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.mesa-status.occupied {
+  background: linear-gradient(135deg, #dc143c 0%, #ff6347 100%);
+  color: white;
+  border-color: #ffb6c1;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.mesa-status.limpiando {
+  background: linear-gradient(135deg, #ff8c00 0%, #ffa500 100%);
+  color: white;
+  border-color: #ffd700;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.mesa-info {
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.mesa-capacity {
+  color: #2c1810;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.mesa-waiter {
+  color: #8b4513;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mesa-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.mesa-btn {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid transparent;
+}
+
+.mesa-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: left 0.6s;
+}
+
+.mesa-btn:hover::before {
+  left: 100%;
+}
+
+.mesa-btn.primary {
+  background: linear-gradient(135deg, #cd853f 0%, #daa520 100%);
+  color: #1a1a1a;
+  box-shadow: 0 8px 25px rgba(205, 133, 63, 0.4);
+  border-color: #f4e4bc;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.mesa-btn.primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(205, 133, 63, 0.6);
+  background: linear-gradient(135deg, #daa520 0%, #ffd700 100%);
+}
+
+.mesa-btn.success {
+  background: linear-gradient(135deg, #228b22 0%, #32cd32 100%);
+  color: white;
+  box-shadow: 0 8px 25px rgba(34, 139, 34, 0.4);
+  border-color: #90ee90;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.mesa-btn.success:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(34, 139, 34, 0.6);
+  background: linear-gradient(135deg, #32cd32 0%, #90ee90 100%);
+}
+
+.mesa-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  background: #cccccc !important;
+  color: #666666 !important;
+}
+
+/* === BOTONES === */
+.btn {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid transparent;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: left 0.6s;
+}
+
+.btn:hover::before {
+  left: 100%;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #cd853f 0%, #daa520 100%);
+  color: #1a1a1a;
+  box-shadow: 0 8px 25px rgba(205, 133, 63, 0.4);
+  border-color: #f4e4bc;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(205, 133, 63, 0.6);
+  background: linear-gradient(135deg, #daa520 0%, #ffd700 100%);
+}
+
+.btn-outline {
+  background: rgba(205, 133, 63, 0.1);
+  color: #cd853f;
+  border: 2px solid #cd853f;
+  text-shadow: none;
+}
+
+.btn-outline:hover {
+  background: rgba(205, 133, 63, 0.2);
+  border-color: #daa520;
+  color: #daa520;
+  transform: translateY(-2px);
+}
+
+/* === ALERTAS === */
+.alert {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  padding: 1.5rem 2rem;
+  border-radius: 15px;
+  font-weight: 800;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-width: 350px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  border: 2px solid transparent;
+  animation: slideInRestaurant 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideInRestaurant {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.alert-success {
+  background: linear-gradient(135deg, #228b22 0%, #32cd32 100%);
+  color: white;
+  border-color: #90ee90;
+  box-shadow: 0 12px 40px rgba(34, 139, 34, 0.5);
+}
+
+.alert-error {
+  background: linear-gradient(135deg, #dc143c 0%, #ff6347 100%);
+  color: white;
+  border-color: #ffb6c1;
+  box-shadow: 0 12px 40px rgba(220, 20, 60, 0.5);
+}
+
+.alert button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.alert button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+/* === LOADING === */
+.loading-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(205, 133, 63, 0.3);
+  border-top: 3px solid #cd853f;
+  border-radius: 50%;
+  animation: spinRestaurant 1s linear infinite;
+  box-shadow: 0 0 10px rgba(205, 133, 63, 0.5);
+}
+
+@keyframes spinRestaurant {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* === EMPTY STATE === */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #f4e4bc;
+}
+
+.empty-state h3 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: #cd853f;
+  text-shadow: 1px 1px 3px rgba(44, 24, 16, 0.3);
+  font-weight: 800;
+}
+
+.empty-state p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  color: #f4e4bc;
+  font-weight: 600;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 1.5rem;
+    flex-direction: column;
+    gap: 1.5rem;
+    border-radius: 0;
+  }
+  
+  .page-header h1 {
+    font-size: 2rem;
+  }
+  
+  .tab-navigation {
+    margin: 1.5rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  
+  .tab-btn {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  
+  .mesas-grid {
+    grid-template-columns: 1fr;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+  
+  .mesa-card {
+    padding: 1.5rem;
+    min-height: 200px;
+  }
+  
+  .mesa-number {
+    font-size: 2rem;
+  }
+  
+  .mesa-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .alert {
+    right: 1rem;
+    left: 1rem;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 1rem;
+  }
+  
+  .tab-navigation {
+    margin: 1rem;
+  }
+  
+  .mesas-grid {
+    padding: 1rem;
+  }
+  
+  .mesa-card {
+    padding: 1.25rem;
+    min-height: 180px;
+  }
+  
+  .mesa-number {
+    font-size: 1.8rem;
+  }
+}

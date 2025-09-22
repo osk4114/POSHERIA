@@ -3,7 +3,7 @@ import { logout } from './auth';
 
 // Crea una instancia de axios que agrega el token automáticamente si existe
 const api = axios.create({
-  baseURL: 'http://localhost:3000' // URL del backend
+  baseURL: 'http://10.1.3.14:3000' // URL del backend
 });
 
 api.interceptors.request.use(     
@@ -34,5 +34,41 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// ===== FUNCIONES PARA AÑADIDOS (ADD-ONS) =====
+
+// Crear un añadido (pedido extra) para una mesa existente
+export const createAddOn = async (tableId, parentOrderId, products) => {
+  try {
+    const requestData = {
+      table: tableId,
+      products: products
+    };
+    
+    console.log('📦 [FRONTEND] Creando añadido para mesa:', tableId);
+    console.log('📦 [FRONTEND] Productos:', products);
+    
+    const response = await api.post('/api/orders/addon', requestData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creando añadido:', error);
+    throw error;
+  }
+};
+
+// Listar añadidos por mesa o pedido principal
+export const listAddOns = async (tableId = null, parentOrderId = null) => {
+  try {
+    const params = {};
+    if (tableId) params.table = tableId;
+    if (parentOrderId) params.parentOrderId = parentOrderId;
+    
+    const response = await api.get('/api/orders/addon', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error obteniendo añadidos:', error);
+    throw error;
+  }
+};
 
 export default api;
