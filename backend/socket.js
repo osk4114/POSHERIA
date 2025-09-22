@@ -15,15 +15,20 @@ function setupSocket(server) {
   });
 
   io.on('connection', (socket) => {
+    console.log('🔌 [BACKEND] Nueva conexión socket:', socket.id);
+    
     // Listen for user identification after login
     socket.on('register-session', ({ userId }) => {
+      console.log('📡 [BACKEND] Usuario registrado en socket:', userId, 'Socket ID:', socket.id);
       userSocketMap.set(userId, socket.id);
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
+      console.log('❌ [BACKEND] Socket desconectado:', socket.id, 'Razón:', reason);
       // Remove any userId associated with this socket
       for (const [userId, sId] of userSocketMap.entries()) {
         if (sId === socket.id) {
+          console.log('🗑️ [BACKEND] Removiendo usuario del mapa:', userId);
           userSocketMap.delete(userId);
           break;
         }

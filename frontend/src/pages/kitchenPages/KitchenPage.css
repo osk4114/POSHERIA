@@ -1,0 +1,550 @@
+/* === ESTILOS COMPLETOS DE KITCHEN DESDE AppBase.css === */
+
+.kitchen-dark-bg {
+  background: linear-gradient(135deg, #2d2217 0%, #181818 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.kitchen-header {
+  background: linear-gradient(135deg, #4a3a2a 0%, #3a2a1a 100%);
+  border-bottom: 3px solid #bfa13a;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  padding: 1.5em 2em;
+}
+
+.kitchen-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.kitchen-title {
+  color: #bfa13a;
+  font-size: 2em;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 1.5px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.kitchen-stats {
+  display: flex;
+  gap: 2em;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1em 1.5em;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(191, 161, 58, 0.3);
+}
+
+.stat-number {
+  font-size: 2em;
+  font-weight: 700;
+  color: #bfa13a;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kitchen-actions {
+  display: flex;
+  gap: 1em;
+  align-items: center;
+}
+
+.kitchen-refresh-btn {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8em 1.5em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1em;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.kitchen-refresh-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.kitchen-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.kitchen-logout-btn {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8em 1.5em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+}
+
+.kitchen-logout-btn:hover {
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+}
+
+.kitchen-main {
+  flex: 1;
+  padding: 2em;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.kitchen-alert {
+  padding: 1em 1.5em;
+  border-radius: 10px;
+  margin-bottom: 1.5em;
+  font-weight: 600;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.kitchen-alert-success {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  color: #065f46;
+  border-left: 4px solid #10b981;
+}
+
+.kitchen-alert-error {
+  background: linear-gradient(135deg, #fef2f2, #fecaca);
+  color: #991b1b;
+  border-left: 4px solid #dc2626;
+}
+
+.kitchen-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2em;
+  height: calc(100vh - 250px);
+}
+
+.kitchen-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kitchen-panel-header {
+  padding: 1.5em 2em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.kitchen-panel-pending .kitchen-panel-header {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+.kitchen-panel-cooking .kitchen-panel-header {
+  background: linear-gradient(135deg, #fed7aa, #fdba74);
+}
+
+.kitchen-panel-ready .kitchen-panel-header {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+}
+
+.kitchen-panel-title {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #374151;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.kitchen-panel-count {
+  background: #374151;
+  color: #fff;
+  padding: 0.4em 0.8em;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.9em;
+}
+
+.kitchen-orders-container {
+  flex: 1;
+  padding: 1.5em;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+}
+
+.kitchen-order-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5em;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kitchen-order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.kitchen-order-card.cooking {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+
+.kitchen-order-card.ready {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1em;
+}
+
+.order-id {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #bfa13a;
+}
+
+.order-time {
+  font-size: 0.9em;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.3em 0.8em;
+  border-radius: 15px;
+}
+
+.order-info {
+  margin-bottom: 1em;
+}
+
+.order-mesa {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.3em;
+}
+
+.order-customer {
+  font-size: 0.9em;
+  color: #6b7280;
+}
+
+.order-items {
+  margin-bottom: 1em;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1em;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5em 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.item-quantity {
+  font-weight: 700;
+  color: #bfa13a;
+  background: #fef3c7;
+  padding: 0.2em 0.6em;
+  border-radius: 10px;
+  font-size: 0.9em;
+}
+
+.order-total {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #374151;
+  text-align: center;
+  background: #f9fafb;
+  padding: 0.8em;
+  border-radius: 8px;
+  margin-bottom: 1em;
+}
+
+.order-actions {
+  display: flex;
+  gap: 0.8em;
+}
+
+.kitchen-btn {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 0.8em 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95em;
+  letter-spacing: 0.5px;
+}
+
+.kitchen-btn-start {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.kitchen-btn-start:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.kitchen-btn-ready {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.kitchen-btn-ready:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.kitchen-btn-delivered {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.kitchen-btn-delivered:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.no-orders {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.no-orders-icon {
+  font-size: 4em;
+  margin-bottom: 1em;
+  opacity: 0.7;
+}
+
+.no-orders-text {
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+/* Scroll personalizado para las columnas */
+.kitchen-orders-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kitchen-orders-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.kitchen-orders-container::-webkit-scrollbar-thumb {
+  background: rgba(191, 161, 58, 0.6);
+  border-radius: 3px;
+}
+
+.kitchen-orders-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(191, 161, 58, 0.8);
+}
+
+/* Responsive para pantallas más pequeñas */
+@media (max-width: 1200px) {
+  .kitchen-columns {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5em;
+  }
+}
+
+@media (max-width: 768px) {
+  .kitchen-columns {
+    grid-template-columns: 1fr;
+    gap: 1em;
+  }
+  
+  .kitchen-header {
+    padding: 1em;
+  }
+  
+  .kitchen-title {
+    font-size: 1.5em;
+  }
+  
+  .kitchen-stats {
+    gap: 1em;
+  }
+  
+  .stat-item {
+    padding: 0.8em 1em;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilos específicos para KitchenPage */
+
+/* === FILTROS MIGRADOS DESDE KitchenDashboard.css === */
+.kitchen-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  backdrop-filter: blur(15px);
+}
+
+.kitchen-filter-btn {
+  padding: 12px 20px;
+  border: 2px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #666;
+}
+
+.kitchen-filter-btn:hover {
+  border-color: #bfa13a;
+  color: #bfa13a;
+  transform: translateY(-2px);
+}
+
+.kitchen-filter-btn.active {
+  background: linear-gradient(135deg, #bfa13a, #d4af37);
+  border-color: #bfa13a;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(191, 161, 58, 0.3);
+}
+
+/* === ESTILOS DE AUTENTICACIÓN === */
+.wood-background {
+  background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(139, 69, 19, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(160, 82, 45, 0.2) 0%, transparent 50%);
+}
+
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 100%;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.auth-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.auth-button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #8B4513, #A0522D);
+  color: white;
+}
+
+.auth-button:hover {
+  background: linear-gradient(135deg, #A0522D, #CD853F);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
+}

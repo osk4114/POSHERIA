@@ -17,9 +17,15 @@ api.interceptors.request.use(
 
 // Interceptor de respuesta para forzar logout si el token es inválido
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ api.js: Respuesta exitosa:', response.config.method.toUpperCase(), response.config.url);
+    return response;
+  },
   (error) => {
+    console.log('❌ api.js: Error en respuesta:', error.response?.status, error.response?.statusText);
+    console.log('💬 api.js: URL que falló:', error.config?.url);
     if (error.response && error.response.status === 401) {
+      console.log('🚑 api.js: Token inválido (401), forzando logout...');
       logout();
       window.location.href = '/';
     }

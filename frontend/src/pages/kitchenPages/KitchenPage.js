@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import { getUser, logout } from '../../auth';
 import { connectSocket, onForceLogout, disconnectSocket } from '../../socket';
-import '../../AppBase.css';
+import './KitchenPage.css';
 
 const KitchenPage = () => {
   const user = getUser();
@@ -58,7 +58,7 @@ const KitchenPage = () => {
         socket.off('orderUpdated');
         socket.off('disconnect');
       }
-      disconnectSocket();
+      // Mantener socket activo al navegar
     };
   }, [user]);
 

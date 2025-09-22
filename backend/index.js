@@ -31,6 +31,7 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 
 
 const tableRoutes = require('./routes/tableRoutes');
+const debugRoutes = require('./routes/debugRoutes');
 app.use('/api', homeRoutes);
 app.use('/api', healthRoutes);
 app.use('/api/orders', orderRoutes);
@@ -39,6 +40,7 @@ app.use('/api/caja', cajaRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/tables', tableRoutes);
+app.use('/api/debug', debugRoutes);
 
 // Para cualquier otra ruta, servir index.html de React
 app.get('*', (req, res) => {
@@ -49,6 +51,7 @@ app.get('*', (req, res) => {
 // Probar conexión a MongoDB antes de iniciar el servidor
 
 const { setupSocket } = require('./socket');
+const { clearTokens } = require('./services/tokenStore');
 
 connectDB()
   .then(() => {
@@ -58,6 +61,24 @@ connectDB()
     // Inicializar socket.io y exponer globalmente para forceLogoutUser
     const io = setupSocket(server);
     global._io = io;
+
+    // Manejo graceful de cierre del servidor
+    const gracefulShutdown = (signal) => {
+      console.log(`\n[${new Date().toISOString()}] Recibida señal ${signal}, cerrando servidor...`);
+      
+      // Limpiar todos los tokens
+      clearTokens();
+      console.log('[CLEANUP] Tokens limpiados');
+      
+      // Cerrar servidor HTTP
+      server.close(() => {
+        console.log('[CLEANUP] Servidor HTTP cerrado');
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   })
   .catch((err) => {
     console.error('Error al conectar a MongoDB:', err);

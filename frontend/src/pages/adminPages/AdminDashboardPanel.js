@@ -1,9 +1,16 @@
 
 import React from 'react';
+import { logout } from '../../auth';
 
 // Panel de navegación para el dashboard de administrador
 export default function AdminDashboardPanel({ activeSection, setActiveSection, user }) {
   const adminSections = [
+    { 
+      id: 'dashboard', 
+      label: 'Dashboard', 
+      icon: '🏠', 
+      description: 'Panel principal de administración' 
+    },
     { 
       id: 'usuarios', 
       label: 'Usuarios', 
@@ -84,10 +91,7 @@ export default function AdminDashboardPanel({ activeSection, setActiveSection, u
       <div className="admin-sidebar-footer">
         <button 
           className="admin-logout-btn"
-          onClick={() => {
-            localStorage.removeItem('token');
-            window.location.href = '/';
-          }}
+          onClick={() => logout(() => window.location.reload())}
         >
           🚪 Cerrar Sesión
         </button>

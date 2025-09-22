@@ -55,7 +55,7 @@ const MozoPage = () => {
       }
     }
     
-    return () => disconnectSocket();
+    // Mantener socket activo al navegar
   }, [user, myTables]);
 
   // Data fetching useEffect
@@ -235,7 +235,7 @@ const MozoPage = () => {
     }
   };
 
-  if (!user || user.role !== 'mozo') {
+  if (!user || (user.role !== 'mozo' && user.role !== 'admin')) {
     return (
       <div className="access-denied">
         <h2>Acceso Denegado</h2>

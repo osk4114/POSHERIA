@@ -15,6 +15,9 @@ function PrivateRoute({ children, role }) {
   if (!isAuthenticated()) return <Navigate to="/" />;
   // Si el usuario es admin, puede acceder a cualquier ruta
   if (user?.role === 'admin') return children;
+  // Si se especifica un rol y el usuario tiene ese rol, permitir acceso
+  if (role && user?.role === role) return children;
+  // Si no coincide el rol, denegar acceso
   if (role && user?.role !== role) return <Navigate to="/" />;
   return children;
 }

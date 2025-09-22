@@ -13,8 +13,8 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({
-      error,
-      errorInfo
+      error: error || new Error('Error desconocido'),
+      errorInfo: errorInfo || { componentStack: 'Stack no disponible' }
     });
 
     // Log error to console in development
@@ -43,8 +43,10 @@ class ErrorBoundary extends React.Component {
               <details className="error-details">
                 <summary>Detalles del error (modo desarrollo)</summary>
                 <pre className="error-stack">
-                  {this.state.error && this.state.error.toString()}
-                  {this.state.errorInfo.componentStack}
+                  {this.state.error ? this.state.error.toString() : 'Error no disponible'}
+                  {this.state.errorInfo && this.state.errorInfo.componentStack ? 
+                    this.state.errorInfo.componentStack : 
+                    '\nStack trace no disponible'}
                 </pre>
               </details>
             )}

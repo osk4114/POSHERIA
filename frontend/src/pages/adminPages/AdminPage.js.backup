@@ -34,6 +34,7 @@ const AdminPage = () => {
   const [loadingReportes, setLoadingReportes] = useState(false);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
 
+  
   // Estados para gestión de caja
   const [cajasAbiertas, setCajasAbiertas] = useState([]);
   const [historialCajas, setHistorialCajas] = useState([]);
@@ -45,7 +46,33 @@ const AdminPage = () => {
   const [loadingCajas, setLoadingCajas] = useState(false);
   const [errorCaja, setErrorCaja] = useState(null);
 
-  // useEffect hooks
+  // Login admin
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      const res = await api.post('/api/users/login', { username, password });
+      const me = await api.get('/api/users/me', {
+        headers: { Authorization: `Bearer ${res.data.token}` }
+      });
+      setSession(res.data.token, me.data);
+      setToken(res.data.token);
+      setUser(me.data);
+      connectSocket(me.data._id);
+      onForceLogout(() => {
+        logout(() => window.location.reload());
+      });
+      if (me.data.role === 'admin') navigate('/admin');
+      else if (me.data.role === 'caja') navigate('/caja');
+      else if (me.data.role === 'mozo') navigate('/mozo');
+      else if (me.data.role === 'cocina') navigate('/cocina');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Error al iniciar sesión');
+    }
+  };
+  
+  export default AdminPage;
+
   useEffect(() => {
     if (token && user && user._id) {
       const socket = connectSocket(user._id);
@@ -79,31 +106,6 @@ const AdminPage = () => {
       fetchCajeros();
     }
   }, [token, user, activeSection]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Login admin
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      const res = await api.post('/api/users/login', { username, password });
-      const me = await api.get('/api/users/me', {
-        headers: { Authorization: `Bearer ${res.data.token}` }
-      });
-      setSession(res.data.token, me.data);
-      setToken(res.data.token);
-      setUser(me.data);
-      connectSocket(me.data._id);
-      onForceLogout(() => {
-        logout(() => window.location.reload());
-      });
-      if (me.data.role === 'admin') navigate('/admin');
-      else if (me.data.role === 'caja') navigate('/caja');
-      else if (me.data.role === 'mozo') navigate('/mozo');
-      else if (me.data.role === 'cocina') navigate('/cocina');
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Error al iniciar sesión');
-    }
-  };
 
   const fetchUsuarios = async () => {
     setError(null);
@@ -184,9 +186,11 @@ const AdminPage = () => {
       // Solo actualizar si hay cambios (encapsulación inteligente)
       if (JSON.stringify(cajasAbiertas) !== JSON.stringify(cajasVerificadas)) {
         setCajasAbiertas(cajasVerificadas);
-        console.log(`🔄 [ENCAPSULACIÓN ADMIN] Cajas actualizadas automáticamente: ${cajasVerificadas.length}`);
-      } else {
-        console.log(`📦 Cajas abiertas válidas: ${cajasVerificadas.length} de ${cajasValidas.length}`);
+
+          console.log(`� [ENCAPSULACIÓN ADMIN] Cajas actualizadas automáticamente: ${cajasVerificadas.length}`);
+        } else {
+          console.log(`�📦 Cajas abiertas válidas: ${cajasVerificadas.length} de ${cajasValidas.length}`);
+        }
       }
     } catch (err) {
       console.error('Error al obtener cajas abiertas:', err);

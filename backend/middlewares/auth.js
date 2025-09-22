@@ -26,7 +26,31 @@ function adminOnly(req, res, next) {
   next();
 }
 
+function cajaAccess(req, res, next) {
+  if (!req.user || (req.user.role !== 'caja' && req.user.role !== 'admin')) {
+    return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de caja o administrador.' });
+  }
+  next();
+}
+
+function cocinaAccess(req, res, next) {
+  if (!req.user || (req.user.role !== 'cocina' && req.user.role !== 'admin')) {
+    return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de cocina o administrador.' });
+  }
+  next();
+}
+
+function mozoAccess(req, res, next) {
+  if (!req.user || (req.user.role !== 'mozo' && req.user.role !== 'admin')) {
+    return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de mozo o administrador.' });
+  }
+  next();
+}
+
 module.exports = {
   authMiddleware,
-  adminOnly
+  adminOnly,
+  cajaAccess,
+  cocinaAccess,
+  mozoAccess
 };
