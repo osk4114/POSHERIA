@@ -26,8 +26,8 @@ const MozoPage = () => {
   // Handler para click en mesa
   const handleMesaClick = (mesa) => {
     setSelectedTable(mesa);
-    if (mesa.status === 'libre' || !mesa.waiterId) {
-      // Mesa libre - permitir tomar
+    if (mesa.status === 'libre' || mesa.status === 'assigned' || !mesa.waiterId) {
+      // Mesa libre o asignada - permitir tomar
       takeTable(mesa._id);
     } else if (mesa.waiterId === user._id) {
       // Es mi mesa - mostrar modal de gestión
@@ -403,6 +403,7 @@ const MozoPage = () => {
                         <div className="mesa-number">Mesa {mesa.number}</div>
                         <div className={`mesa-status ${mesa.status}`}>
                           {mesa.status === 'libre' ? 'Libre' : 
+                           mesa.status === 'assigned' ? 'Pendiente' :
                            mesa.status === 'ocupada' ? 'Ocupada' : 
                            mesa.status === 'limpiando' ? 'Limpiando' : mesa.status}
                         </div>

@@ -47,7 +47,12 @@ function forceLogoutUser(userId) {
   }
 }
 
+function getSocketIO() {
+  return global._io;
+}
+
 module.exports = {
   setupSocket,
-  forceLogoutUser
+  forceLogoutUser,
+  getSocketIO
 };

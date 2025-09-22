@@ -140,6 +140,14 @@ const KitchenPage = () => {
           fetchEstadisticas();
         });
 
+        socket.on('orderPaid', (data) => {
+          console.log('💳 Orden pagada:', data);
+          setStatusMsg('💳 Pedido pagado - listo para preparar');
+          setTimeout(() => setStatusMsg(null), 3000);
+          fetchPedidos();
+          fetchEstadisticas();
+        });
+
         // SOLO configurar force-logout para usuarios de cocina, no para admin
         if (user.role === 'cocina') {
           console.log('🔒 KitchenPage: Configurando force-logout para usuario de cocina');
@@ -303,6 +311,7 @@ const KitchenPage = () => {
                   <div className="order-id">
                     <span className="order-number">#{pedido._id.slice(-4)}</span>
                     {pedido.type === 'add-on' && <span className="addon-badge">➕ AÑADIDO</span>}
+                    {pedido.paymentStatus === 'paid' && <span className="paid-badge">💳 PAGADO</span>}
                   </div>
                   <div className="order-info">
                     <span className="order-mesa">{getMesaInfo(pedido.tableId)}</span>

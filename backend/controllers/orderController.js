@@ -77,10 +77,12 @@ module.exports = {
   listAddOns,
   getStatsToday,
   getOrderHistory,
+  updateOrderStatus,
 };
 // controllers/orderController.js
 const { getDB } = require('../config/mongo');
 const { ObjectId } = require('mongodb');
+const { getSocketIO } = require('../socket');
 
 // Create a new order
 async function createOrder(req, res) {
@@ -140,6 +142,15 @@ async function createOrder(req, res) {
       };
 
       const result = await orders.insertOne(order);
+      
+      // Emitir evento WebSocket para notificar a cocina sobre nuevo pedido
+      const io = getSocketIO();
+      if (io) {
+        const newOrder = { ...order, _id: result.insertedId };
+        io.emit('newOrder', newOrder);
+        console.log(`[orderController] WebSocket emitido: newOrder para pedido ${result.insertedId}`);
+      }
+      
       res.status(201).json({ message: 'Order created', orderId: result.insertedId });
       return;
     }
@@ -165,8 +176,8 @@ async function createOrder(req, res) {
       if (mesa.status !== 'free') {
         return res.status(400).json({ message: 'La mesa no está disponible.' });
       }
-      // Marcar mesa como ocupada
-      await mesas.updateOne({ _id: mesaObjId }, { $set: { status: 'occupied', updatedAt: new Date() } });
+      // Marcar mesa como asignada (pendiente de atención por mozo)
+      await mesas.updateOne({ _id: mesaObjId }, { $set: { status: 'assigned', updatedAt: new Date() } });
     }
 
     const order = {
@@ -179,6 +190,15 @@ async function createOrder(req, res) {
       updatedAt: new Date(),
     };
     const result = await orders.insertOne(order);
+    
+    // Emitir evento WebSocket para notificar a cocina sobre nuevo pedido
+    const io = getSocketIO();
+    if (io) {
+      const newOrder = { ...order, _id: result.insertedId };
+      io.emit('newOrder', newOrder);
+      console.log(`[orderController] WebSocket emitido: newOrder para pedido ${result.insertedId}`);
+    }
+    
     res.status(201).json({ message: 'Order created', orderId: result.insertedId });
   } catch (err) {
     console.error('Error creating order:', err);
@@ -261,7 +281,7 @@ async function payOrder(req, res) {
     console.log('[payOrder] Buscando pedido para pagar con _id:', objectId);
     const order = await orders.findOneAndUpdate(
       { _id: objectId },
-      { $set: { status: 'paid', updatedAt: new Date() } },
+      { $set: { paymentStatus: 'paid', paidAt: new Date(), updatedAt: new Date() } },
       { returnDocument: 'after', returnOriginal: false }
     );
     const doc = order.value || order;
@@ -291,6 +311,18 @@ async function payOrder(req, res) {
       { _id: caja._id },
       { $push: { movements: movimiento } }
     );
+    
+    // Emitir evento WebSocket para notificar que el pedido fue pagado
+    const io = getSocketIO();
+    if (io) {
+      io.emit('orderPaid', {
+        orderId: id,
+        order: doc,
+        timestamp: new Date()
+      });
+      console.log(`[payOrder] WebSocket emitido: orderPaid para pedido ${id}`);
+    }
+    
     console.log('[payOrder] RETURN: Exito', { id });
     res.json({ message: 'Order paid and sent to kitchen' });
   } catch (err) {
@@ -377,6 +409,87 @@ async function getOrderHistory(req, res) {
     res.json(pedidos);
   } catch (err) {
     res.status(500).json({ message: 'Error al obtener historial de pedidos', error: err.message });
+  }
+}
+
+// Update order status (usado desde cocina)
+async function updateOrderStatus(req, res) {
+  try {
+    const db = getDB();
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    console.log('[orderController] PATCH/PUT /api/orders/:id/status');
+    console.log(`  Actualizando pedido ${id} a estado: ${status}`);
+
+    // Validar estado
+    const validStatuses = ['pending', 'preparing', 'ready', 'delivered', 'in_kitchen'];
+    if (!validStatuses.includes(status)) {
+      console.log('  Estado no permitido:', status);
+      return res.status(400).json({ message: 'Estado no permitido' });
+    }
+
+    let objectId;
+    try {
+      objectId = new ObjectId(id);
+    } catch (e) {
+      console.log('  ID de pedido inválido:', id);
+      return res.status(400).json({ message: 'ID de pedido inválido' });
+    }
+
+    // Obtener pedido actual
+    const pedidoActual = await db.collection('orders').findOne({ _id: objectId });
+    if (!pedidoActual) {
+      console.log('  Pedido no encontrado:', id);
+      return res.status(404).json({ message: 'Pedido no encontrado' });
+    }
+
+    // Actualizar pedido con timestamp
+    const datosActualizacion = {
+      status,
+      updatedAt: new Date(),
+      [`timestamp_${status}`]: new Date() // Guardar timestamp del cambio de estado
+    };
+
+    const updateResult = await db.collection('orders').updateOne(
+      { _id: objectId },
+      { $set: datosActualizacion }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      console.log('  Pedido no encontrado para actualizar:', id);
+      return res.status(404).json({ message: 'Pedido no encontrado' });
+    }
+
+    // Obtener pedido actualizado
+    const pedidoActualizado = await db.collection('orders').findOne({ _id: objectId });
+    
+    // Emitir evento WebSocket para actualización en tiempo real
+    const io = getSocketIO();
+    if (io) {
+      io.emit('orderStatusUpdated', {
+        orderId: id,
+        previousStatus: pedidoActual.status,
+        newStatus: status,
+        order: pedidoActualizado,
+        timestamp: new Date(),
+        updatedBy: 'cocina'
+      });
+      
+      console.log(`[orderController] WebSocket emitido: orderStatusUpdated para pedido ${id}`);
+    }
+
+    console.log(`  Pedido ${id} actualizado exitosamente a ${status}`);
+    res.json({ 
+      message: 'Estado actualizado exitosamente', 
+      pedido: pedidoActualizado,
+      previousStatus: pedidoActual.status,
+      newStatus: status
+    });
+
+  } catch (err) {
+    console.error('[orderController] Error en updateOrderStatus:', err);
+    res.status(500).json({ message: 'Error al actualizar estado', error: err.message });
   }
 }
 

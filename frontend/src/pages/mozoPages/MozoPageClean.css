@@ -276,6 +276,12 @@
   color: white;
 }
 
+.mesa-status.assigned {
+  background: #ffc107;
+  color: #212529;
+  font-weight: bold;
+}
+
 .mesa-status.ocupada {
   background: #dc3545;
   color: white;

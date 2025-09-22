@@ -3,7 +3,7 @@ import { logout } from './auth';
 
 // Crea una instancia de axios que agrega el token automáticamente si existe
 const api = axios.create({
-  baseURL: 'http://10.1.3.14:3000' // URL del backend
+  baseURL: 'http://172.80.15.89:3000' // URL del backend
 });
 
 api.interceptors.request.use(     

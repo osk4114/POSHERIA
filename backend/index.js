@@ -25,14 +25,24 @@ app.use(express.json());
 const os = require('os');
 const interfaces = os.networkInterfaces();
 let localIp = 'localhost';
+let preferredIp = null;
+
 for (const name of Object.keys(interfaces)) {
   for (const iface of interfaces[name]) {
     if (iface.family === 'IPv4' && !iface.internal) {
-      localIp = iface.address;
-      break;
+      // Priorizar IPs de red real sobre IPs virtuales
+      if (iface.address.startsWith('172.') || iface.address.startsWith('10.')) {
+        preferredIp = iface.address;
+        break;
+      } else if (!preferredIp) {
+        preferredIp = iface.address;
+      }
     }
   }
+  if (preferredIp && preferredIp.startsWith('172.')) break;
 }
+
+localIp = preferredIp || localIp;
 
 // Configuración de CORS para permitir peticiones desde el frontend
 app.use((req, res, next) => {
@@ -46,7 +56,7 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
   }
   
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
   

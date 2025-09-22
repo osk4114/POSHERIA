@@ -21,7 +21,7 @@ export function connectSocket(userId) {
   }
   
   console.log('🔌 [FRONTEND] socket.js: Creando nueva conexión socket...');
-  socket = io('http://10.1.3.14:3000', {
+  socket = io('http://172.80.15.89:3000', {
     autoConnect: true,
     reconnection: true,
     reconnectionAttempts: 10, // Más intentos
